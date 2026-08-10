@@ -4,6 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFE GAUGE｜ハヤシライス 消防士→米農家への道</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LT1XYQR29Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LT1XYQR29Y');
+  // セクション到達計測（どの章まで読まれたか）
+  document.addEventListener('DOMContentLoaded', function(){
+    var seen = {};
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting && !seen[e.target.id]){
+          seen[e.target.id] = true;
+          gtag('event', 'section_view', {'section_id': e.target.id});
+        }
+      });
+    }, {threshold: 0.4});
+    ['story','rice','why','hizumi','notes','progress'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) obs.observe(el);
+    });
+  });
+</script>
+
 <meta name="description" content="令和の米騒動に恐怖を感じた消防士が、米農家への転身を決めた。西日本の谷あいで稲作修行中。2027年に独立予定。あぜ道を走る草刈りロボットも自作中。ライフゲージを、味わい尽くせ。">
 <meta property="og:title" content="LIFE GAUGE｜ハヤシライス 消防士→米農家への道">
 <meta property="og:description" content="ライフゲージを、味わい尽くせ。消防士→米農家への転身記録。">
@@ -271,6 +296,7 @@
       <a href="https://x.com/Rice_Gauge" target="_blank" rel="noopener">X (Twitter)</a>
     </div>
     <p>© LIFE GAUGE｜ハヤシライス　—　ライフゲージを、味わい尽くせ。</p>
+    <p style="margin-top:10px;font-size:11px;color:var(--muted)">本サイトは改善のためGoogle Analyticsを利用しています。データはCookie等により匿名で収集され、個人を特定するものではありません。</p>
   </div>
 </footer>
 
