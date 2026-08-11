@@ -49,6 +49,7 @@
   .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;padding:80px 0 60px;border-bottom:1px solid var(--line)}
   .brand{font-size:13px;letter-spacing:.35em;color:var(--muted);margin-bottom:28px}
   .gauge{width:min(360px,82%);margin-bottom:6px}
+  .gauge-icon{width:min(240px,62%);border-radius:22px;border:1px solid var(--line);display:block;margin-bottom:26px}
   .gauge svg{width:100%;height:auto;display:block}
   .gauge-label{display:flex;justify-content:space-between;font-weight:900;font-size:22px;margin-top:8px;max-width:min(360px,82%)}
   .gauge-label .pct{color:var(--green)}
@@ -147,26 +148,7 @@
 <header class="hero">
   <div class="wrap">
     <p class="brand">LIFE GAUGE AGRICULTURE</p>
-    <div class="gauge" role="img" aria-label="米粒型のライフゲージ・残り47%">
-      <svg viewBox="0 0 360 116" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <clipPath id="grain-clip">
-            <path d="M 18,58 C 18,28 52,14 110,12 C 170,10 250,10 292,18 C 330,25 344,40 344,58 C 344,76 330,91 292,98 C 250,106 170,106 110,104 C 52,102 18,88 18,58 Z"/>
-          </clipPath>
-        </defs>
-        <g clip-path="url(#grain-clip)">
-          <path d="M 8,4 L 180,4 L 148,112 L 8,112 Z" fill="#3ecf6a"/>
-          <path d="M 30,98 L 70,14" stroke="#2ea854" stroke-width="7" stroke-linecap="round"/>
-          <path d="M 56,104 L 98,10" stroke="#2ea854" stroke-width="6" stroke-linecap="round"/>
-          <path d="M 86,102 L 124,12" stroke="#35bd5e" stroke-width="7" stroke-linecap="round"/>
-          <path d="M 114,100 L 150,16" stroke="#2ea854" stroke-width="6" stroke-linecap="round"/>
-          <path d="M 22,70 L 48,22" stroke="#35bd5e" stroke-width="6" stroke-linecap="round"/>
-          <path d="M 138,96 L 162,40" stroke="#35bd5e" stroke-width="5" stroke-linecap="round"/>
-        </g>
-        <path d="M 18,58 C 18,28 52,14 110,12 C 170,10 250,10 292,18 C 330,25 344,40 344,58 C 344,76 330,91 292,98 C 250,106 170,106 110,104 C 52,102 18,88 18,58 Z" fill="none" stroke="#f2f1ec" stroke-width="5" stroke-linejoin="round"/>
-      </svg>
-      <div class="gauge-label"><span class="pct">47%.</span><span>LIFE</span></div>
-    </div>
+    <img class="gauge-icon" src="x_icon.jpg" alt="手描きのライフゲージ。47% LIFE">
     <h1 class="copy">ライフゲージを、<br><span>味わい尽くせ。</span></h1>
     <p class="sub">令和の米騒動に恐怖を感じた消防士が、農家の平均年齢69歳という現実を知り、米農家になることを決めた。西日本の谷あいで稲作修行中。2027年、米農家として独立予定。</p>
     <div class="hero-links">
