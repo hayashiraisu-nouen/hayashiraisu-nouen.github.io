@@ -22,7 +22,7 @@
         }
       });
     }, {threshold: 0.4});
-    ['story','rice','why','hizumi','notes','progress'].forEach(function(id){
+    ['story','rice','why','vision100','hizumi','notes','progress'].forEach(function(id){
       var el = document.getElementById(id);
       if(el) obs.observe(el);
     });
@@ -122,6 +122,24 @@
   footer .links{margin-bottom:18px;display:flex;gap:20px}
   footer a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--line)}
   @media (max-width:600px){ section{padding:64px 0} .hero{min-height:84vh} }
+  /* vision100 */
+  .vqa{max-width:640px;margin-bottom:34px}
+  .vqa .q{font-size:13px;letter-spacing:.25em;color:var(--accent);font-weight:700;display:block;margin-bottom:10px}
+  .vqa p{margin-bottom:1.2em}
+  .vqa strong{color:var(--accent)}
+  /* pledge */
+  .pledge{border-top:1px solid var(--line);padding:34px 0 8px;margin-top:10px}
+  .pledge .pt{font-size:12px;letter-spacing:.3em;color:var(--green);margin-bottom:14px}
+  .pledge ul{list-style:none}
+  .pledge li{font-size:15px;font-weight:700;padding:7px 0;color:var(--text)}
+  .pledge li::before{content:"一、";color:var(--green);margin-right:6px}
+  /* note lanes */
+  .lane-h{font-size:12px;letter-spacing:.22em;color:var(--accent);font-weight:700;margin:30px 0 6px}
+  .lane-h:first-of-type{margin-top:0}
+  /* whoami */
+  .whoami{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:22px 24px;max-width:640px;margin-top:30px}
+  .whoami .wt{font-size:11px;letter-spacing:.25em;color:var(--green);display:block;margin-bottom:8px}
+  .whoami p{font-size:14px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -175,6 +193,14 @@
     <div class="ph">
       <img src="img/paddy_reflection.jpg" alt="田植えを終えたばかりの田んぼ。水面に空と山が映る">
       <p class="cap">師匠の田んぼ。初めての田植えを終えた日。空が映る水面に、植えたばかりの苗が並ぶ。</p>
+    </div>
+    <div class="ph">
+      <img src="hand_leaf.jpg" alt="作業の手のひらに乗せた稲の葉">
+      <p class="cap">師匠に教わりながら、分げつの数を数える。この手が、来年は自分の田を耕す。</p>
+    </div>
+    <div class="whoami">
+      <span class="wt">この記録を書いている人</span>
+      <p>現役の消防士（2027年3月まで）。三児の父。平日は単身で谷に通い、週末は家族のもとへ帰る。字がとても下手。コーヒーを自家焙煎する。決算書を読むのが好き。信条は、命を守る仕事で学んだ「安全と誠実」を、命を育てる仕事に持ち込むこと。</p>
     </div>
   </div>
 </section>
@@ -230,6 +256,24 @@
   </div>
 </section>
 
+<section id="vision100">
+  <div class="wrap">
+    <h2>VISION — 100年続く谷へ</h2>
+    <div class="vqa">
+      <span class="q">WHY — なぜ、残すのか</span>
+      <p>日本の農家の平均年齢は69歳。この谷でも、担い手は年々減っている。何もしなければ、20年後にこの風景を耕す人はいない。僕が谷に来た理由は、ノスタルジーではなく、この単純な算数です。</p>
+    </div>
+    <div class="vqa">
+      <span class="q">HOW — どう、残すのか</span>
+      <p>米を作り、顔の見える形で届ける。過程を全部発信して、谷の外に仲間を作る。あぜ道の草刈りのような重労働は、自作のロボットで軽くする。竹や籾殻のような「谷の余りもの」は、循環に組み込んで資源に変える。そしていつか、次の挑戦者をこの谷に迎える。</p>
+    </div>
+    <div class="vqa">
+      <span class="q">FUTURE — 残った谷の風景</span>
+      <p>100年後、この谷の田に水が入り、裏山の竹は土に還り、誰かが畦に立っている。それが誰の子孫かは、どうでもいい。<strong>耕す人がいる谷</strong>——それがゴールのすべてです。</p>
+    </div>
+  </div>
+</section>
+
 <section id="hizumi">
   <div class="wrap">
     <h2>草刈りロボット PROJECT</h2>
@@ -252,24 +296,31 @@
 <section id="notes">
   <div class="wrap">
     <h2>NOTE — 転身の記録（全17話）</h2>
+    <p class="lane-h">物語 — 消防士が農家になるまで</p>
     <ul class="archive">
       <li><a href="https://note.com/hayashiraisu_1" target="_blank" rel="noopener"><span class="no">01</span><span class="t">令和の米騒動が、消防士だった私を農家にする話</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1" target="_blank" rel="noopener"><span class="no">02</span><span class="t">師匠の田んぼで、初めて米を植えた日</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1" target="_blank" rel="noopener"><span class="no">03</span><span class="t">トラクターに乗った日、もう戻れなくなった</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1" target="_blank" rel="noopener"><span class="no">04</span><span class="t">師匠に「米作りの全部」を教わった日のこと</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/n1fa9e90aa5e5" target="_blank" rel="noopener"><span class="no">05</span><span class="t">米農家（希望）が草刈りロボットを作っている話</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/nab01b47adf6f" target="_blank" rel="noopener"><span class="no">06</span><span class="t">師匠が、茎を数えた。</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/n0892317c58c5" target="_blank" rel="noopener"><span class="no">07</span><span class="t">田んぼで、量子力学の話になった。</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/n6236cb3f8d02" target="_blank" rel="noopener"><span class="no">08</span><span class="t">正直、行きたくない。―就農相談の、前夜に</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/n1f088a287a7a" target="_blank" rel="noopener"><span class="no">09</span><span class="t">行ってきた、就農相談。</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/nebfa59acb72b" target="_blank" rel="noopener"><span class="no">10</span><span class="t">田んぼは、我が子だった。</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/na5c25e5009cb" target="_blank" rel="noopener"><span class="no">11</span><span class="t">ゲンゴロウと、殺人斜面</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/n7ded8a9c9b63" target="_blank" rel="noopener"><span class="no">12</span><span class="t">中山間の米に未来はあるか？</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/nc00d9af6cd2b" target="_blank" rel="noopener"><span class="no">13</span><span class="t">田んぼが、見つかったかもしれない日。</span></a></li>
+    </ul>
+    <p class="lane-h">検証シリーズ — データで調べる（noteマネー掲載2本）</p>
+    <ul class="archive">
+      <li><a href="https://note.com/hayashiraisu_1/n/n7ded8a9c9b63" target="_blank" rel="noopener"><span class="no">12</span><span class="t">中山間の米に未来はあるか？</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/n42e7ffcc3ccd" target="_blank" rel="noopener"><span class="no">14</span><span class="t">谷を維持するのに、いくらかかるか。</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/nd46837a8c757" target="_blank" rel="noopener"><span class="no">15</span><span class="t">「農機の補助金は、農家じゃなくメーカーに流れている」という噂を、3社の決算を読んで調べてみた。</span></a></li>
-      <li><a href="https://note.com/hayashiraisu_1/n/ne2e6c63fa68d" target="_blank" rel="noopener"><span class="no">16</span><span class="t">消防士が本気で選んだ、猛暑の田んぼ装備</span></a></li>
       <li><a href="https://note.com/hayashiraisu_1/n/n5bb836a1b694" target="_blank" rel="noopener"><span class="no">17</span><span class="t">放置竹林を肥料に変えたら、農家は儲かるのか調べた</span><span class="new">NEW</span></a></li>
+    </ul>
+    <p class="lane-h">谷の現場から — 修行と道具とロボット</p>
+    <ul class="archive">
+      <li><a href="https://note.com/hayashiraisu_1/n/n1fa9e90aa5e5" target="_blank" rel="noopener"><span class="no">05</span><span class="t">米農家（希望）が草刈りロボットを作っている話</span></a></li>
+      <li><a href="https://note.com/hayashiraisu_1/n/nab01b47adf6f" target="_blank" rel="noopener"><span class="no">06</span><span class="t">師匠が、茎を数えた。</span></a></li>
+      <li><a href="https://note.com/hayashiraisu_1/n/n0892317c58c5" target="_blank" rel="noopener"><span class="no">07</span><span class="t">田んぼで、量子力学の話になった。</span></a></li>
+      <li><a href="https://note.com/hayashiraisu_1/n/na5c25e5009cb" target="_blank" rel="noopener"><span class="no">11</span><span class="t">ゲンゴロウと、殺人斜面</span></a></li>
+      <li><a href="https://note.com/hayashiraisu_1/n/ne2e6c63fa68d" target="_blank" rel="noopener"><span class="no">16</span><span class="t">消防士が本気で選んだ、猛暑の田んぼ装備</span></a></li>
     </ul>
   </div>
 </section>
@@ -291,7 +342,15 @@
 
 <footer>
   <div class="wrap">
-    <div class="links">
+    <div class="pledge">
+      <p class="pt">私たちの約束</p>
+      <ul>
+        <li>100年続く谷を、作ります。</li>
+        <li>過程を、全部見せます。</li>
+        <li>一食を、味わい尽くします。</li>
+      </ul>
+    </div>
+    <div class="links" style="margin-top:26px">
       <a href="https://note.com/hayashiraisu_1" target="_blank" rel="noopener">note</a>
       <a href="https://x.com/Rice_Gauge" target="_blank" rel="noopener">X (Twitter)</a>
     </div>
