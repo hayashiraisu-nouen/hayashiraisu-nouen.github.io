@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>就農融資 返済シミュレーター</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif; background: #f7f6f2; color: #2b2b2b; padding: 16px; }
+h1 { font-size: 19px; margin-bottom: 2px; }
+.sub { font-size: 12px; color: #777; margin-bottom: 14px; }
+.cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.card { background: #fff; border: 1px solid #e2ddd4; border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 150px; }
+.card .lbl { font-size: 11px; color: #888; }
+.card .val { font-size: 21px; font-weight: 700; margin-top: 2px; }
+.card .val small { font-size: 12px; font-weight: 400; color: #888; }
+.card.max { border-color: #c0392b; background: #fdf3f2; }
+.card.max .val { color: #c0392b; }
+.panel { background: #fff; border: 1px solid #e2ddd4; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.panel h2 { font-size: 14px; margin-bottom: 10px; border-left: 4px solid #5a7d4f; padding-left: 8px; }
+.global { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+.global label { font-size: 12px; color: #555; }
+.global input[type=number] { width: 76px; padding: 4px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+table.loans { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.loans th { background: #f0ede6; padding: 6px 4px; font-weight: 600; border-bottom: 2px solid #ddd; white-space: nowrap; }
+table.loans td { padding: 5px 4px; border-bottom: 1px solid #eee; text-align: center; vertical-align: middle; }
+table.loans td.nm { text-align: left; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+input[type=text] { width: 110px; padding: 4px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; }
+.numcell { display: flex; align-items: center; gap: 6px; justify-content: center; }
+input[type=range] { width: 90px; accent-color: #5a7d4f; }
+input.num { width: 58px; padding: 4px 2px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; text-align: right; }
+.unit { font-size: 11px; color: #888; }
+.off td { opacity: .45; }
+.chartbox { position: relative; height: 340px; }
+table.yearly { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+table.yearly th { background: #f0ede6; padding: 6px 4px; border-bottom: 2px solid #ddd; }
+table.yearly td { padding: 5px 4px; border-bottom: 1px solid #eee; text-align: right; }
+table.yearly td:first-child, table.yearly td:nth-child(2) { text-align: center; }
+tr.maxrow td { background: #fdeceb; font-weight: 700; color: #b03a2e; }
+tr.over td:last-child { color: #c0392b; font-weight: 700; }
+.note { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.7; }
+.btn { padding: 5px 14px; border: 1px solid #5a7d4f; background: #fff; color: #5a7d4f; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.btn:hover { background: #eef3ec; }
+.btn.primary { background: #5a7d4f; color: #fff; }
+.btn.primary:hover { background: #4a6a41; }
+.btn.sm { padding: 3px 10px; font-size: 11px; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.cmp th { background: #f0ede6; padding: 7px 6px; border-bottom: 2px solid #ddd; }
+table.cmp th.slotHead input { width: 100px; padding: 3px; border: 1px solid #ccc; border-radius: 5px; font-size: 12px; text-align: center; font-weight: 600; }
+table.cmp td { padding: 6px; border-bottom: 1px solid #eee; text-align: center; }
+table.cmp td:first-child { text-align: left; background: #fafaf7; font-weight: 600; white-space: nowrap; }
+table.cmp td.best { background: #e8f3e4; color: #33632a; font-weight: 700; }
+table.cmp td.cur { background: #fbf8ee; }
+table.cmp td.empty { color: #bbb; }
+.slotbtns { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1>就農融資 返済シミュレーター</h1>
+<div class="sub">機械ごとに借入額・金利・据置(最大5年)・返済期間(最大12年)を動かすと、年度別の返済額が即時に再計算されます(元金均等・年払い)。</div>
+
+<div class="cards">
+  <div class="card"><div class="lbl">総借入額</div><div class="val" id="cTotal">–</div></div>
+  <div class="card"><div class="lbl">支払利息の総額</div><div class="val" id="cInt">–</div></div>
+  <div class="card max"><div class="lbl">年間返済の最大(ピーク)</div><div class="val" id="cMax">–</div></div>
+  <div class="card"><div class="lbl">完済まで</div><div class="val" id="cEnd">–</div></div>
+</div>
+
+<div class="panel">
+  <h2>全体設定</h2>
+  <div class="global">
+    <label>就農開始年(1年目): <input type="number" id="baseYear" value="2027" min="2020" max="2040"></label>
+    <label>参考:農業所得(万円/年): <input type="number" id="income" value="600" min="0" max="3000" step="10"></label>
+    <label class="unit">→ グラフに「所得の15%ライン」を表示(自主ルール:返済はこの線以下に)</label>
+    <button class="btn" id="resetBtn">初期値に戻す</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>設定の保存と比較(A・B・C)</h2>
+  <table class="cmp">
+    <thead><tr>
+      <th style="width:130px"></th>
+      <th>いま画面の設定</th>
+      <th class="slotHead"><input id="label0" value="保存A" maxlength="12"></th>
+      <th class="slotHead"><input id="label1" value="保存B" maxlength="12"></th>
+      <th class="slotHead"><input id="label2" value="保存C" maxlength="12"></th>
+    </tr></thead>
+    <tbody id="cmpBody"></tbody>
+    <tbody><tr>
+      <td>操作</td>
+      <td class="unit">↓保存先を選ぶ</td>
+      <td><div class="slotbtns"><button class="btn sm primary" data-save="0">ここに保存</button><button class="btn sm" data-load="0">呼び出す</button></div></td>
+      <td><div class="slotbtns"><button class="btn sm primary" data-save="1">ここに保存</button><button class="btn sm" data-load="1">呼び出す</button></div></td>
+      <td><div class="slotbtns"><button class="btn sm primary" data-save="2">ここに保存</button><button class="btn sm" data-load="2">呼び出す</button></div></td>
+    </tr></tbody>
+  </table>
+  <div class="note">「ここに保存」=いまの画面の設定をそのスロットに記録。「呼び出す」=そのスロットの設定を画面に復元。緑のセル=3案の中で一番良い値。列名(保存A等)は書き換えできます。</div>
+</div>
+
+<div class="panel">
+  <h2>借入の一覧(最大10件・借入額0の行は無視されます)</h2>
+  <table class="loans">
+    <thead><tr>
+      <th>#</th><th>名称</th><th>借入年</th>
+      <th>借入額(万円)</th><th>金利(%)</th><th>据置(年)</th><th>返済期間(年)</th><th>この借入の利息</th>
+    </tr></thead>
+    <tbody id="loanRows"></tbody>
+  </table>
+  <div class="note">※金利0%=青年等就農資金(無利子・据置最大5年+返済で計17年以内)。有利子(スーパーL等)は現行 年1.65〜2.8%程度。据置期間中は利息のみ支払い(無利子なら支払い0)。</div>
+</div>
+
+<div class="panel">
+  <h2>年度別の返済額(積み上げ)</h2>
+  <div class="chartbox"><canvas id="chart"></canvas></div>
+</div>
+
+<div class="panel">
+  <h2>年度別の内訳表</h2>
+  <table class="yearly">
+    <thead><tr><th>年目</th><th>西暦</th><th>元金(万円)</th><th>利息(万円)</th><th>合計(万円)</th><th>所得比</th></tr></thead>
+    <tbody id="yearlyBody"></tbody>
+  </table>
+  <div class="note">赤い行=返済ピークの年。所得比が15%を超える年は赤字表示。<br>※簡易モデル(年1回払い・元金均等)。実際の借入条件は公庫の返済シミュレーションで最終確認してください。</div>
+</div>
+
+<script>
+const COLORS = ["#5a7d4f","#4a6fa5","#c0803a","#8e5aa5","#3a9d9d","#b0525e","#7a7a3a","#5a5a8e","#a5714a","#4f4f4f"];
+const DEFAULTS = [
+  {name:"1年目導入(中古機械等)", start:1, amt:150, rate:0, grace:5, term:12},
+  {name:"2年目導入",             start:2, amt:150, rate:0, grace:5, term:12},
+  {name:"3年目導入(トラクター等)",start:3, amt:430, rate:0, grace:5, term:12},
+  {name:"4年目導入(コンバイン等)",start:4, amt:520, rate:0, grace:5, term:12},
+  {name:"5年目導入",             start:5, amt:80,  rate:0, grace:5, term:12},
+  {name:"7年目追加(有利子)",      start:7, amt:100, rate:2, grace:0, term:7},
+  {name:"8年目追加(有利子)",      start:8, amt:50,  rate:2, grace:0, term:7},
+  {name:"9年目追加(有利子)",      start:9, amt:150, rate:2, grace:0, term:7},
+  {name:"10年目追加(有利子)",     start:10,amt:150, rate:2, grace:0, term:7},
+  {name:"予備",                  start:1, amt:0,   rate:0, grace:5, term:12},
+];
+let loans = [];
+try {
+  const saved = localStorage.getItem("loanSimData_v1");
+  loans = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULTS));
+  if (!Array.isArray(loans) || loans.length !== 10) loans = JSON.parse(JSON.stringify(DEFAULTS));
+} catch(e) { loans = JSON.parse(JSON.stringify(DEFAULTS)); }
+
+function saveState(){ try { localStorage.setItem("loanSimData_v1", JSON.stringify(loans)); } catch(e){} }
+
+// ---- 保存スロット(A/B/C) ----
+let slots = [null, null, null];
+try {
+  const s = localStorage.getItem("loanSimSlots_v1");
+  if (s) { const arr = JSON.parse(s); if (Array.isArray(arr) && arr.length === 3) slots = arr; }
+} catch(e){}
+function saveSlots(){ try { localStorage.setItem("loanSimSlots_v1", JSON.stringify(slots)); } catch(e){} }
+
+function computeMetrics(ls, income){
+  const scheds = ls.map(schedule);
+  let horizon = 17;
+  scheds.forEach(s => Object.keys(s).forEach(y => { horizon = Math.max(horizon, +y); }));
+  horizon = Math.min(horizon, 40);
+  let peak = 0, peakYear = 0, endYear = 0, totalInt = 0, overYears = 0;
+  for (let y = 1; y <= horizon; y++){
+    let t = 0;
+    scheds.forEach(s => { if (s[y]) { t += s[y].p + s[y].i; totalInt += 0; } });
+    if (t > peak) { peak = t; peakYear = y; }
+    if (t > 0.001) endYear = y;
+    if (income > 0 && t > income * 0.15) overYears++;
+  }
+  scheds.forEach(s => Object.values(s).forEach(v => { totalInt += v.i; }));
+  const totalBorrow = ls.reduce((a,l)=>a+(l.amt>0?l.amt:0),0);
+  return { totalBorrow, totalInt, peak, peakYear, endYear, overYears };
+}
+
+const CMP_ROWS = [
+  { key:"totalBorrow", label:"総借入額",      fmt:(m)=>fmt(m.totalBorrow)+"万円", best:"none" },
+  { key:"totalInt",    label:"支払利息の総額", fmt:(m)=>m.totalInt<0.05?"0円":"約"+fmt(m.totalInt)+"万円", best:"min" },
+  { key:"peak",        label:"ピーク年間返済", fmt:(m)=>fmt(m.peak)+"万円", best:"min" },
+  { key:"peakYear",    label:"ピークの年",     fmt:(m)=>m.peakYear+"年目", best:"none" },
+  { key:"endYear",     label:"完済まで",       fmt:(m)=>m.endYear+"年", best:"none" },
+  { key:"overYears",   label:"所得15%超の年数", fmt:(m)=>m.overYears+"年", best:"min" },
+];
+
+function renderCompare(curM, income){
+  const body = document.getElementById("cmpBody");
+  const slotMs = slots.map(sl => sl ? computeMetrics(sl.loans, sl.income != null ? sl.income : income) : null);
+  for (let i = 0; i < 3; i++){
+    const el = document.getElementById("label"+i);
+    if (slots[i] && slots[i].label && document.activeElement !== el) el.value = slots[i].label;
+  }
+  body.innerHTML = "";
+  CMP_ROWS.forEach(row => {
+    const tr = document.createElement("tr");
+    let bestVal = null;
+    if (row.best === "min"){
+      slotMs.forEach(m => { if (m && (bestVal === null || m[row.key] < bestVal)) bestVal = m[row.key]; });
+    }
+    let html = "<td>" + row.label + "</td>";
+    html += '<td class="cur">' + row.fmt(curM) + "</td>";
+    slotMs.forEach(m => {
+      if (!m) { html += '<td class="empty">–</td>'; return; }
+      const isBest = row.best === "min" && bestVal !== null && Math.abs(m[row.key]-bestVal) < 0.05;
+      html += '<td class="' + (isBest ? "best" : "") + '">' + row.fmt(m) + "</td>";
+    });
+    tr.innerHTML = html;
+    body.appendChild(tr);
+  });
+}
+
+// ---- 計算: 各借入の年別 [元金, 利息] を返す(offset 1=借入翌年から支払い) ----
+function schedule(l){
+  const out = {}; // yearIndex(absolute 年目) -> {p, i}
+  if (l.amt <= 0) return out;
+  const A = l.amt, r = l.rate/100, g = Math.min(l.grace,5), n = Math.max(1,Math.min(l.term,12));
+  for (let k = 1; k <= g; k++){
+    const y = l.start + k - 1;
+    out[y] = { p: 0, i: A * r };
+  }
+  for (let k = 1; k <= n; k++){
+    const y = l.start + g + k - 1;
+    const bal = A * (n - k + 1) / n;
+    out[y] = { p: A / n, i: bal * r };
+  }
+  return out;
+}
+
+let chart = null;
+function fmt(x){ return x.toLocaleString("ja-JP", {maximumFractionDigits:1, minimumFractionDigits:0}); }
+
+function recalc(){
+  const base = parseInt(document.getElementById("baseYear").value) || 2027;
+  const income = parseFloat(document.getElementById("income").value) || 0;
+  const scheds = loans.map(schedule);
+  let horizon = 17;
+  scheds.forEach(s => Object.keys(s).forEach(y => { horizon = Math.max(horizon, +y); }));
+  horizon = Math.min(horizon, 40);
+
+  const years = []; for (let y = 1; y <= horizon; y++) years.push(y);
+  const perLoan = scheds.map(s => years.map(y => s[y] ? s[y].p + s[y].i : 0));
+  const totP = years.map(y => scheds.reduce((a,s)=>a+(s[y]?s[y].p:0),0));
+  const totI = years.map(y => scheds.reduce((a,s)=>a+(s[y]?s[y].i:0),0));
+  const tot  = years.map((y,idx)=> totP[idx]+totI[idx]);
+
+  const totalBorrow = loans.reduce((a,l)=>a+(l.amt>0?l.amt:0),0);
+  const loanInts = scheds.map(s => Object.values(s).reduce((a,v)=>a+v.i,0));
+  const totalInt = loanInts.reduce((a,b)=>a+b,0);
+  let maxIdx = 0; tot.forEach((v,i)=>{ if (v > tot[maxIdx]) maxIdx = i; });
+  let lastIdx = -1; tot.forEach((v,i)=>{ if (v > 0.001) lastIdx = i; });
+
+  document.getElementById("cTotal").innerHTML = fmt(totalBorrow) + "<small> 万円</small>";
+  document.getElementById("cInt").innerHTML = fmt(totalInt) + "<small> 万円</small>";
+  document.getElementById("cMax").innerHTML = tot[maxIdx] > 0 ? fmt(tot[maxIdx]) + "<small> 万円/" + years[maxIdx] + "年目(" + (base+years[maxIdx]-1) + ")</small>" : "–";
+  document.getElementById("cEnd").innerHTML = lastIdx >= 0 ? years[lastIdx] + "<small> 年目(" + (base+years[lastIdx]-1) + ")</small>" : "–";
+
+  loans.forEach((l,i)=>{
+    const el = document.getElementById("int_"+i);
+    if (el) el.textContent = l.amt > 0 ? (loanInts[i] < 0.05 ? "0円" : "約"+fmt(loanInts[i])+"万円") : "–";
+  });
+
+  const labels = years.map(y => y + "年目\n" + (base+y-1));
+  const datasets = loans.map((l,i)=>({
+    label: (i+1) + "." + (l.name || "借入"+(i+1)),
+    data: perLoan[i], backgroundColor: COLORS[i], stack: "s",
+    hidden: l.amt <= 0
+  }));
+  if (income > 0){
+    datasets.push({ type:"line", label:"所得15%ライン("+fmt(income*0.15)+"万円)",
+      data: years.map(()=>income*0.15), borderColor:"#c0392b", borderDash:[6,4],
+      borderWidth:2, pointRadius:0, fill:false });
+  }
+  if (chart){ chart.data.labels = labels; chart.data.datasets = datasets; chart.update(); }
+  else {
+    chart = new Chart(document.getElementById("chart"), {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 150 },
+        scales: { x: { stacked: true, ticks: { font: { size: 10 } } },
+                  y: { stacked: true, title: { display: true, text: "万円/年" } } },
+        plugins: { legend: { position: "bottom", labels: { font: { size: 10 }, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.parsed.y) + "万円" } } }
+      }
+    });
+  }
+
+  const tb = document.getElementById("yearlyBody");
+  tb.innerHTML = "";
+  years.forEach((y,idx)=>{
+    if (tot[idx] < 0.001 && idx > lastIdx) return;
+    const ratio = income > 0 ? tot[idx]/income*100 : 0;
+    const tr = document.createElement("tr");
+    if (idx === maxIdx && tot[idx] > 0) tr.className = "maxrow";
+    if (ratio > 15) tr.classList.add("over");
+    tr.innerHTML = "<td>"+y+"年目</td><td>"+(base+y-1)+"</td><td>"+fmt(totP[idx])+"</td><td>"+fmt(totI[idx])+"</td><td>"+fmt(tot[idx])+"</td><td>"+(income>0?ratio.toFixed(1)+"%":"–")+"</td>";
+    tb.appendChild(tr);
+  });
+  renderCompare({ totalBorrow, totalInt, peak: tot[maxIdx] || 0, peakYear: tot[maxIdx] > 0 ? years[maxIdx] : 0,
+    endYear: lastIdx >= 0 ? years[lastIdx] : 0,
+    overYears: income > 0 ? tot.filter(v => v > income*0.15).length : 0 }, income);
+  saveState();
+}
+
+// ---- 行UI生成 ----
+function cell(html){ const td = document.createElement("td"); td.innerHTML = html; return td; }
+function numCtl(i, key, min, max, step, unit){
+  const wrap = document.createElement("td");
+  wrap.innerHTML = '<div class="numcell">'
+    + '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+loans[i][key]+'" data-i="'+i+'" data-k="'+key+'">'
+    + '<input class="num" type="number" min="'+min+'" max="'+max+'" step="'+step+'" value="'+loans[i][key]+'" data-i="'+i+'" data-k="'+key+'">'
+    + (unit ? '<span class="unit">'+unit+'</span>' : '') + '</div>';
+  return wrap;
+}
+function buildRows(){
+  const tb = document.getElementById("loanRows");
+  tb.innerHTML = "";
+  loans.forEach((l,i)=>{
+    const tr = document.createElement("tr");
+    if (l.amt <= 0) tr.className = "off";
+    tr.appendChild(cell('<span class="dot" style="background:'+COLORS[i]+'"></span>'+(i+1)));
+    const nm = cell('<input type="text" value="" data-i="'+i+'" data-k="name">');
+    nm.className = "nm"; nm.querySelector("input").value = l.name;
+    tr.appendChild(nm);
+    tr.appendChild(numCtl(i,"start",1,17,1,"年目"));
+    tr.appendChild(numCtl(i,"amt",0,2000,10,""));
+    tr.appendChild(numCtl(i,"rate",0,5,0.1,""));
+    tr.appendChild(numCtl(i,"grace",0,5,1,""));
+    tr.appendChild(numCtl(i,"term",1,12,1,""));
+    tr.appendChild(cell('<span id="int_'+i+'">–</span>'));
+    tb.appendChild(tr);
+  });
+}
+document.getElementById("loanRows").addEventListener("input", e=>{
+  const i = +e.target.dataset.i, k = e.target.dataset.k;
+  if (k === undefined) return;
+  if (k === "name"){ loans[i][k] = e.target.value; recalc(); return; }
+  const v = parseFloat(e.target.value);
+  if (isNaN(v)) return;
+  loans[i][k] = v;
+  const tr = e.target.closest("tr");
+  tr.querySelectorAll('[data-k="'+k+'"]').forEach(el=>{ if (el !== e.target) el.value = v; });
+  tr.className = loans[i].amt <= 0 ? "off" : "";
+  recalc();
+});
+document.getElementById("baseYear").addEventListener("input", recalc);
+document.getElementById("income").addEventListener("input", recalc);
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  loans = JSON.parse(JSON.stringify(DEFAULTS));
+  buildRows(); recalc();
+});
+document.querySelectorAll("[data-save]").forEach(btn => btn.addEventListener("click", ()=>{
+  const i = +btn.dataset.save;
+  slots[i] = {
+    label: document.getElementById("label"+i).value || "保存" + "ABC"[i],
+    loans: JSON.parse(JSON.stringify(loans)),
+    baseYear: parseInt(document.getElementById("baseYear").value) || 2027,
+    income: parseFloat(document.getElementById("income").value) || 0
+  };
+  saveSlots(); recalc();
+}));
+document.querySelectorAll("[data-load]").forEach(btn => btn.addEventListener("click", ()=>{
+  const i = +btn.dataset.load;
+  if (!slots[i]) { alert("このスロットはまだ空です。先に「ここに保存」を押してください。"); return; }
+  loans = JSON.parse(JSON.stringify(slots[i].loans));
+  document.getElementById("baseYear").value = slots[i].baseYear;
+  document.getElementById("income").value = slots[i].income;
+  buildRows(); recalc();
+}));
+for (let i = 0; i < 3; i++){
+  document.getElementById("label"+i).addEventListener("input", e => {
+    if (slots[i]) { slots[i].label = e.target.value; saveSlots(); }
+  });
+}
+buildRows(); recalc();
+</script>
+</body>
+</html>
