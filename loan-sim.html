@@ -116,6 +116,7 @@ table.cmp td.empty { color: #bbb; }
   <h2>全体設定</h2>
   <div class="global">
     <label>就農開始年(1年目): <input type="number" id="baseYear" value="2027" min="2020" max="2040"></label>
+    <label>安全ライン: 所得の <input type="number" id="linePct" value="15" min="1" max="50" step="1" style="width:56px"> %以内</label>
     <button class="btn" id="resetBtn">入力例に戻す</button>
   </div>
   <div style="margin-top:10px">
@@ -170,7 +171,7 @@ table.cmp td.empty { color: #bbb; }
     <thead><tr><th>年目</th><th>西暦</th><th>元金(万円)</th><th>利息(万円)</th><th>合計(万円)</th><th>所得比</th></tr></thead>
     <tbody id="yearlyBody"></tbody>
   </table>
-  <div class="note">赤い行=返済ピークの年。所得比が15%を超える年は赤字表示。<br>※「年間返済は農業所得の15%以内」は経営安全の目安の一例です(10〜20%を目安とする考え方もあります)。<br>※簡易モデル(年1回払い・元金均等)。本ツールは一般的な情報提供であり、個別の経営・融資助言ではありません。実際の借入は日本政策金融公庫・普及指導センター・税理士等にご相談のうえ、公庫の返済シミュレーションで最終確認してください。</div>
+  <div class="note">赤い行=返済ピークの年。所得比が安全ライン(既定15%・上部で変更可)を超える年は赤字表示。<br>※「年間返済は農業所得の15%以内」は経営安全の目安の一例です(10〜20%を目安とする考え方もあります)。<br>※簡易モデル(年1回払い・元金均等)。本ツールは一般的な情報提供であり、個別の経営・融資助言ではありません。実際の借入は日本政策金融公庫・普及指導センター・税理士等にご相談のうえ、公庫の返済シミュレーションで最終確認してください。</div>
 </div>
 
 <script>
@@ -211,18 +212,18 @@ const PRESET_SLOTS = [
 const INCOME_DEFAULT = [150,300,450,500,500];
 while (INCOME_DEFAULT.length < 25) INCOME_DEFAULT.push(500);
 
-let loans = [], incomes = [];
+let loans = [], incomes = [], linePct = 15;
 try {
   const saved = localStorage.getItem("loanSimGeneralData_v1");
   if (saved){
     const obj = JSON.parse(saved);
-    loans = obj.loans; incomes = obj.incomes;
+    loans = obj.loans; incomes = obj.incomes; if (obj.linePct > 0) linePct = obj.linePct;
   }
 } catch(e){}
 if (!Array.isArray(loans) || loans.length !== 10) loans = JSON.parse(JSON.stringify(DEFAULTS));
 if (!Array.isArray(incomes) || incomes.length < 21) incomes = INCOME_DEFAULT.slice();
 
-function saveState(){ try { localStorage.setItem("loanSimGeneralData_v1", JSON.stringify({loans, incomes})); } catch(e){} }
+function saveState(){ try { localStorage.setItem("loanSimGeneralData_v1", JSON.stringify({loans, incomes, linePct})); } catch(e){} }
 function slotIncomes(sl){ return (sl.incomes && sl.incomes.length >= 21) ? sl.incomes : (sl.income ? Array(25).fill(sl.income) : INCOME_DEFAULT); }
 
 // ---- 保存スロット(A/B/C) ----
@@ -244,7 +245,7 @@ function computeMetrics(ls, incArr){
     scheds.forEach(s => { if (s[y]) { t += s[y].p + s[y].i; totalInt += 0; } });
     if (t > peak) { peak = t; peakYear = y; }
     if (t > 0.001) endYear = y;
-    const line = (incArr[y-1] || 0) * 0.15;
+    const line = (incArr[y-1] || 0) * (linePct/100);
     if (line > 0 && t > line) overYears++;
   }
   scheds.forEach(s => Object.values(s).forEach(v => { totalInt += v.i; }));
@@ -258,7 +259,7 @@ const CMP_ROWS = [
   { key:"peak",        label:"ピーク年間返済", fmt:(m)=>fmt(m.peak)+"万円", best:"min" },
   { key:"peakYear",    label:"ピークの年",     fmt:(m)=>m.peakYear+"年目", best:"none" },
   { key:"endYear",     label:"完済まで",       fmt:(m)=>m.endYear+"年", best:"none" },
-  { key:"overYears",   label:"所得15%超の年数", fmt:(m)=>m.overYears+"年", best:"min" },
+  { key:"overYears",   label:"安全ライン超の年数", fmt:(m)=>m.overYears+"年", best:"min" },
 ];
 
 function renderCompare(curM){
@@ -344,13 +345,13 @@ function recalc(){
     const ratio = inc > 0 ? tot[idx]/inc*100 : 0;
     const tr = document.createElement("tr");
     if (idx === maxIdx && tot[idx] > 0) tr.className = "maxrow";
-    if (ratio > 15) tr.classList.add("over");
+    if (ratio > linePct) tr.classList.add("over");
     tr.innerHTML = "<td>"+y+"年目</td><td>"+(base+y-1)+"</td><td>"+fmt(totP[idx])+"</td><td>"+fmt(totI[idx])+"</td><td>"+fmt(tot[idx])+"</td><td>"+(inc>0?ratio.toFixed(1)+"%":"–")+"</td>";
     tb.appendChild(tr);
   });
   renderCompare({ totalBorrow, totalInt, peak: tot[maxIdx] || 0, peakYear: tot[maxIdx] > 0 ? years[maxIdx] : 0,
     endYear: lastIdx >= 0 ? years[lastIdx] : 0,
-    overYears: tot.filter((v,i) => { const l = (incomes[i]||0)*0.15; return l > 0 && v > l; }).length });
+    overYears: tot.filter((v,i) => { const l = (incomes[i]||0)*(linePct/100); return l > 0 && v > l; }).length });
   saveState();
 
   // グラフは最後に描く(グラフ部品が読み込めない環境でも表は必ず出す)
@@ -362,8 +363,8 @@ function recalc(){
       data: perLoan[i], backgroundColor: COLORS[i], stack: "s",
       hidden: l.amt <= 0
     }));
-    datasets.push({ type:"line", label:"所得の15%ライン(年度別)",
-      data: years.map(y=>(incomes[y-1]||0)*0.15), borderColor:"#c0392b", borderDash:[6,4],
+    datasets.push({ type:"line", label:"所得の"+linePct+"%ライン(年度別)",
+      data: years.map(y=>(incomes[y-1]||0)*(linePct/100)), borderColor:"#c0392b", borderDash:[6,4],
       borderWidth:2, pointRadius:0, fill:false });
     if (chart){ chart.data.labels = labels; chart.data.datasets = datasets; chart.update(); }
     else {
@@ -448,6 +449,10 @@ document.getElementById("incRow").addEventListener("input", e=>{
   recalc();
 });
 document.getElementById("baseYear").addEventListener("input", recalc);
+document.getElementById("linePct").addEventListener("input", e=>{
+  const v = parseFloat(e.target.value);
+  if (!isNaN(v) && v > 0){ linePct = v; recalc(); }
+});
 document.getElementById("resetBtn").addEventListener("click", ()=>{
   loans = JSON.parse(JSON.stringify(DEFAULTS));
   incomes = INCOME_DEFAULT.slice();
