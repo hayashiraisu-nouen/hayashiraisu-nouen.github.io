@@ -2,9 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>就農融資 返済シミュレーター</title>
+<title>農業向け 融資返済シミュレーター(汎用版)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <style>
 :root { color-scheme: light; }
@@ -57,11 +56,54 @@ table.cmp td.best { background: #e8f3e4; color: #33632a; font-weight: 700; }
 table.cmp td.cur { background: #fbf8ee; }
 table.cmp td.empty { color: #bbb; }
 .slotbtns { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+.scrollx { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.incrow { display: flex; gap: 4px; overflow-x: auto; padding: 8px 0 4px; -webkit-overflow-scrolling: touch; }
+.incitem { text-align: center; flex-shrink: 0; }
+.incitem .yl { font-size: 10px; color: #888; }
+.incitem input { width: 52px; padding: 4px 2px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; text-align: center; }
+
+/* ===== スマホ用(720px以下) ===== */
+@media (max-width: 720px) {
+  body { padding: 8px; }
+  h1 { font-size: 16px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .card { min-width: 0; padding: 8px 10px; }
+  .card .val { font-size: 16px; }
+  .panel { padding: 10px; }
+  .global { gap: 10px; }
+  .global label { display: block; width: 100%; }
+  /* 借入一覧をカード式に */
+  table.loans, table.loans tbody { display: block; width: 100%; }
+  table.loans thead { display: none; }
+  table.loans tr { display: block; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 10px; padding: 6px 8px; background: #fff; }
+  table.loans td { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 4px 2px; text-align: left; }
+  table.loans td::before { content: attr(data-label); font-size: 11px; color: #888; min-width: 4.5em; text-align: left; flex-shrink: 0; }
+  table.loans td.nm input { width: 100%; flex: 1; }
+  .numcell { flex: 1; justify-content: flex-end; }
+  input[type=range] { flex: 1; min-width: 0; max-width: 160px; }
+  /* 比較表・年次表は横スクロール */
+  table.cmp, table.yearly { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; font-size: 11px; }
+  table.cmp th.slotHead input { width: 76px; }
+  .chartbox { height: 240px; }
+  .btn { padding: 8px 12px; }  /* タップしやすく */
+  .btn.sm { padding: 6px 10px; }
+}
 </style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LT1XYQR29Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LT1XYQR29Y');
+  window.__simUsedSent = false;
+  document.addEventListener('input', function(){
+    if (!window.__simUsedSent){ window.__simUsedSent = true; try{ gtag('event', 'sim_used'); }catch(e){} }
+  }, true);
+</script>
 </head>
 <body>
-<h1>就農融資 返済シミュレーター</h1>
-<div class="sub">機械ごとに借入額・金利・据置(最大5年)・返済期間(最大12年)を動かすと、年度別の返済額が即時に再計算されます(元金均等・年払い)。</div>
+<h1>農業向け 融資返済シミュレーター <span style="font-size:12px;color:#888;">β版</span></h1>
+<div class="sub">新規就農・規模拡大の借入計画づくりに。使い方は3ステップ: ①「借入の一覧」に機械・施設ごとの借入額・金利・据置・返済期間を入力(スライダー可) ②「年度別の農業所得」にご自身の計画値を入力 ③グラフと表で年度別の返済額と「所得の15%ライン」を確認。設定はA/B/Cに保存して比較できます(元金均等・年払いの簡易モデル)。β版です——間違い・改善要望は X @Rice_Gauge まで気軽にどうぞ。</div>
 
 <div class="cards">
   <div class="card"><div class="lbl">総借入額</div><div class="val" id="cTotal">–</div></div>
@@ -74,9 +116,11 @@ table.cmp td.empty { color: #bbb; }
   <h2>全体設定</h2>
   <div class="global">
     <label>就農開始年(1年目): <input type="number" id="baseYear" value="2027" min="2020" max="2040"></label>
-    <label>参考:農業所得(万円/年): <input type="number" id="income" value="600" min="0" max="3000" step="10"></label>
-    <label class="unit">→ グラフに「所得の15%ライン」を表示(自主ルール:返済はこの線以下に)</label>
-    <button class="btn" id="resetBtn">初期値に戻す</button>
+    <button class="btn" id="resetBtn">入力例に戻す</button>
+  </div>
+  <div style="margin-top:10px">
+    <b style="font-size:12px">年度別の農業所得(万円) — 15%ラインの元。ご自身の計画値を入力してください(初期値は仮の例)</b>
+    <div class="incrow" id="incRow"></div>
   </div>
 </div>
 
@@ -99,7 +143,8 @@ table.cmp td.empty { color: #bbb; }
       <td><div class="slotbtns"><button class="btn sm primary" data-save="2">ここに保存</button><button class="btn sm" data-load="2">呼び出す</button></div></td>
     </tr></tbody>
   </table>
-  <div class="note">「ここに保存」=いまの画面の設定をそのスロットに記録。「呼び出す」=そのスロットの設定を画面に復元。緑のセル=3案の中で一番良い値。列名(保存A等)は書き換えできます。</div>
+  <div class="note">「ここに保存」=いまの画面の設定をそのスロットに記録。「呼び出す」=そのスロットの設定を画面に復元。緑のセル=3案の中で一番良い値。列名は書き換えできます。
+  <button class="btn sm" id="restorePresets" style="margin-left:8px">⚠️ 保存A・B・Cを入力例に戻す</button></div>
 </div>
 
 <div class="panel">
@@ -125,41 +170,70 @@ table.cmp td.empty { color: #bbb; }
     <thead><tr><th>年目</th><th>西暦</th><th>元金(万円)</th><th>利息(万円)</th><th>合計(万円)</th><th>所得比</th></tr></thead>
     <tbody id="yearlyBody"></tbody>
   </table>
-  <div class="note">赤い行=返済ピークの年。所得比が15%を超える年は赤字表示。<br>※簡易モデル(年1回払い・元金均等)。実際の借入条件は公庫の返済シミュレーションで最終確認してください。</div>
+  <div class="note">赤い行=返済ピークの年。所得比が15%を超える年は赤字表示。<br>※「年間返済は農業所得の15%以内」は経営安全の目安の一例です(10〜20%を目安とする考え方もあります)。<br>※簡易モデル(年1回払い・元金均等)。本ツールは一般的な情報提供であり、個別の経営・融資助言ではありません。実際の借入は日本政策金融公庫・普及指導センター・税理士等にご相談のうえ、公庫の返済シミュレーションで最終確認してください。</div>
 </div>
 
 <script>
 const COLORS = ["#5a7d4f","#4a6fa5","#c0803a","#8e5aa5","#3a9d9d","#b0525e","#7a7a3a","#5a5a8e","#a5714a","#4f4f4f"];
+// 汎用版: 入力例(自由に書き換えて使う)
 const DEFAULTS = [
-  {name:"1年目導入(中古機械等)", start:1, amt:150, rate:0, grace:5, term:12},
-  {name:"2年目導入",             start:2, amt:150, rate:0, grace:5, term:12},
-  {name:"3年目導入(トラクター等)",start:3, amt:430, rate:0, grace:5, term:12},
-  {name:"4年目導入(コンバイン等)",start:4, amt:520, rate:0, grace:5, term:12},
-  {name:"5年目導入",             start:5, amt:80,  rate:0, grace:5, term:12},
-  {name:"7年目追加(有利子)",      start:7, amt:100, rate:2, grace:0, term:7},
-  {name:"8年目追加(有利子)",      start:8, amt:50,  rate:2, grace:0, term:7},
-  {name:"9年目追加(有利子)",      start:9, amt:150, rate:2, grace:0, term:7},
-  {name:"10年目追加(有利子)",     start:10,amt:150, rate:2, grace:0, term:7},
-  {name:"予備",                  start:1, amt:0,   rate:0, grace:5, term:12},
+  {name:"例: トラクター",   start:1, amt:300, rate:0, grace:5, term:12},
+  {name:"例: 田植機",       start:2, amt:150, rate:0, grace:5, term:12},
+  {name:"例: コンバイン",   start:3, amt:500, rate:0, grace:5, term:12},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
+  {name:"",                start:1, amt:0,   rate:0, grace:0, term:10},
 ];
-let loans = [];
-try {
-  const saved = localStorage.getItem("loanSimData_v1");
-  loans = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULTS));
-  if (!Array.isArray(loans) || loans.length !== 10) loans = JSON.parse(JSON.stringify(DEFAULTS));
-} catch(e) { loans = JSON.parse(JSON.stringify(DEFAULTS)); }
+// 入力例2種をプリセット(自由に上書き可)
+function makeExample(rows, incs){
+  const l = JSON.parse(JSON.stringify(DEFAULTS));
+  l.forEach((x,i)=>{ if (rows[i]) Object.assign(x, rows[i]); else { x.name=""; x.amt=0; } });
+  const inc = incs.slice(); while (inc.length < 25) inc.push(incs[incs.length-1]);
+  return { loans: l, incomes: inc, baseYear: 2027 };
+}
+const PRESET_SLOTS = [
+  Object.assign(makeExample(
+    [{name:"例: 中古トラクター",start:1,amt:300,rate:0,grace:5,term:12},
+     {name:"例: 田植機",start:2,amt:150,rate:0,grace:5,term:12},
+     {name:"例: コンバイン",start:3,amt:500,rate:0,grace:5,term:12}],
+    [150,300,450,500,500]), { label: "例① 新規就農" }),
+  Object.assign(makeExample(
+    [{name:"例: コンバイン更新",start:1,amt:800,rate:1.8,grace:0,term:10},
+     {name:"例: 乾燥機",start:3,amt:300,rate:1.8,grace:0,term:7}],
+    [700,700,700,700,700]), { label: "例② 既存農家" }),
+  Object.assign(makeExample([], [500]), { label: "保存C(空き)" }),
+];
+// 年度別の農業所得(万円)の初期値(仮の例)。必ずご自身の計画値に書き換えてください
+const INCOME_DEFAULT = [150,300,450,500,500];
+while (INCOME_DEFAULT.length < 25) INCOME_DEFAULT.push(500);
 
-function saveState(){ try { localStorage.setItem("loanSimData_v1", JSON.stringify(loans)); } catch(e){} }
+let loans = [], incomes = [];
+try {
+  const saved = localStorage.getItem("loanSimGeneralData_v1");
+  if (saved){
+    const obj = JSON.parse(saved);
+    loans = obj.loans; incomes = obj.incomes;
+  }
+} catch(e){}
+if (!Array.isArray(loans) || loans.length !== 10) loans = JSON.parse(JSON.stringify(DEFAULTS));
+if (!Array.isArray(incomes) || incomes.length < 21) incomes = INCOME_DEFAULT.slice();
+
+function saveState(){ try { localStorage.setItem("loanSimGeneralData_v1", JSON.stringify({loans, incomes})); } catch(e){} }
+function slotIncomes(sl){ return (sl.incomes && sl.incomes.length >= 21) ? sl.incomes : (sl.income ? Array(25).fill(sl.income) : INCOME_DEFAULT); }
 
 // ---- 保存スロット(A/B/C) ----
-let slots = [null, null, null];
+let slots = JSON.parse(JSON.stringify(PRESET_SLOTS));
 try {
-  const s = localStorage.getItem("loanSimSlots_v1");
+  const s = localStorage.getItem("loanSimGeneralSlots_v1");
   if (s) { const arr = JSON.parse(s); if (Array.isArray(arr) && arr.length === 3) slots = arr; }
 } catch(e){}
-function saveSlots(){ try { localStorage.setItem("loanSimSlots_v1", JSON.stringify(slots)); } catch(e){} }
+function saveSlots(){ try { localStorage.setItem("loanSimGeneralSlots_v1", JSON.stringify(slots)); } catch(e){} }
 
-function computeMetrics(ls, income){
+function computeMetrics(ls, incArr){
   const scheds = ls.map(schedule);
   let horizon = 17;
   scheds.forEach(s => Object.keys(s).forEach(y => { horizon = Math.max(horizon, +y); }));
@@ -170,7 +244,8 @@ function computeMetrics(ls, income){
     scheds.forEach(s => { if (s[y]) { t += s[y].p + s[y].i; totalInt += 0; } });
     if (t > peak) { peak = t; peakYear = y; }
     if (t > 0.001) endYear = y;
-    if (income > 0 && t > income * 0.15) overYears++;
+    const line = (incArr[y-1] || 0) * 0.15;
+    if (line > 0 && t > line) overYears++;
   }
   scheds.forEach(s => Object.values(s).forEach(v => { totalInt += v.i; }));
   const totalBorrow = ls.reduce((a,l)=>a+(l.amt>0?l.amt:0),0);
@@ -186,9 +261,9 @@ const CMP_ROWS = [
   { key:"overYears",   label:"所得15%超の年数", fmt:(m)=>m.overYears+"年", best:"min" },
 ];
 
-function renderCompare(curM, income){
+function renderCompare(curM){
   const body = document.getElementById("cmpBody");
-  const slotMs = slots.map(sl => sl ? computeMetrics(sl.loans, sl.income != null ? sl.income : income) : null);
+  const slotMs = slots.map(sl => sl ? computeMetrics(sl.loans, slotIncomes(sl)) : null);
   for (let i = 0; i < 3; i++){
     const el = document.getElementById("label"+i);
     if (slots[i] && slots[i].label && document.activeElement !== el) el.value = slots[i].label;
@@ -234,7 +309,6 @@ function fmt(x){ return x.toLocaleString("ja-JP", {maximumFractionDigits:1, mini
 
 function recalc(){
   const base = parseInt(document.getElementById("baseYear").value) || 2027;
-  const income = parseFloat(document.getElementById("income").value) || 0;
   const scheds = loans.map(schedule);
   let horizon = 17;
   scheds.forEach(s => Object.keys(s).forEach(y => { horizon = Math.max(horizon, +y); }));
@@ -262,53 +336,62 @@ function recalc(){
     if (el) el.textContent = l.amt > 0 ? (loanInts[i] < 0.05 ? "0円" : "約"+fmt(loanInts[i])+"万円") : "–";
   });
 
-  const labels = years.map(y => y + "年目\n" + (base+y-1));
-  const datasets = loans.map((l,i)=>({
-    label: (i+1) + "." + (l.name || "借入"+(i+1)),
-    data: perLoan[i], backgroundColor: COLORS[i], stack: "s",
-    hidden: l.amt <= 0
-  }));
-  if (income > 0){
-    datasets.push({ type:"line", label:"所得15%ライン("+fmt(income*0.15)+"万円)",
-      data: years.map(()=>income*0.15), borderColor:"#c0392b", borderDash:[6,4],
-      borderWidth:2, pointRadius:0, fill:false });
-  }
-  if (chart){ chart.data.labels = labels; chart.data.datasets = datasets; chart.update(); }
-  else {
-    chart = new Chart(document.getElementById("chart"), {
-      type: "bar",
-      data: { labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 150 },
-        scales: { x: { stacked: true, ticks: { font: { size: 10 } } },
-                  y: { stacked: true, title: { display: true, text: "万円/年" } } },
-        plugins: { legend: { position: "bottom", labels: { font: { size: 10 }, boxWidth: 12 } },
-          tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.parsed.y) + "万円" } } }
-      }
-    });
-  }
-
   const tb = document.getElementById("yearlyBody");
   tb.innerHTML = "";
   years.forEach((y,idx)=>{
     if (tot[idx] < 0.001 && idx > lastIdx) return;
-    const ratio = income > 0 ? tot[idx]/income*100 : 0;
+    const inc = incomes[y-1] || 0;
+    const ratio = inc > 0 ? tot[idx]/inc*100 : 0;
     const tr = document.createElement("tr");
     if (idx === maxIdx && tot[idx] > 0) tr.className = "maxrow";
     if (ratio > 15) tr.classList.add("over");
-    tr.innerHTML = "<td>"+y+"年目</td><td>"+(base+y-1)+"</td><td>"+fmt(totP[idx])+"</td><td>"+fmt(totI[idx])+"</td><td>"+fmt(tot[idx])+"</td><td>"+(income>0?ratio.toFixed(1)+"%":"–")+"</td>";
+    tr.innerHTML = "<td>"+y+"年目</td><td>"+(base+y-1)+"</td><td>"+fmt(totP[idx])+"</td><td>"+fmt(totI[idx])+"</td><td>"+fmt(tot[idx])+"</td><td>"+(inc>0?ratio.toFixed(1)+"%":"–")+"</td>";
     tb.appendChild(tr);
   });
   renderCompare({ totalBorrow, totalInt, peak: tot[maxIdx] || 0, peakYear: tot[maxIdx] > 0 ? years[maxIdx] : 0,
     endYear: lastIdx >= 0 ? years[lastIdx] : 0,
-    overYears: income > 0 ? tot.filter(v => v > income*0.15).length : 0 }, income);
+    overYears: tot.filter((v,i) => { const l = (incomes[i]||0)*0.15; return l > 0 && v > l; }).length });
   saveState();
+
+  // グラフは最後に描く(グラフ部品が読み込めない環境でも表は必ず出す)
+  try {
+    if (typeof Chart === "undefined") throw new Error("Chart.js not loaded");
+    const labels = years.map(y => y + "年目\n" + (base+y-1));
+    const datasets = loans.map((l,i)=>({
+      label: (i+1) + "." + (l.name || "借入"+(i+1)),
+      data: perLoan[i], backgroundColor: COLORS[i], stack: "s",
+      hidden: l.amt <= 0
+    }));
+    datasets.push({ type:"line", label:"所得の15%ライン(年度別)",
+      data: years.map(y=>(incomes[y-1]||0)*0.15), borderColor:"#c0392b", borderDash:[6,4],
+      borderWidth:2, pointRadius:0, fill:false });
+    if (chart){ chart.data.labels = labels; chart.data.datasets = datasets; chart.update(); }
+    else {
+      chart = new Chart(document.getElementById("chart"), {
+        type: "bar",
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 150 },
+          scales: { x: { stacked: true, ticks: { font: { size: 10 } } },
+                    y: { stacked: true, title: { display: true, text: "万円/年" } } },
+          plugins: { legend: { position: "bottom", labels: { font: { size: 10 }, boxWidth: 12 } },
+            tooltip: { callbacks: { label: c => c.dataset.label + ": " + fmt(c.parsed.y) + "万円" } } }
+        }
+      });
+    }
+  } catch(e) {
+    const box = document.querySelector(".chartbox");
+    if (box && !box.querySelector(".chart-fallback")){
+      box.innerHTML = '<div class="chart-fallback" style="padding:20px;color:#888;font-size:12px;line-height:1.8">📊 グラフ部品を読み込めませんでした(ネット接続がないか、アプリ内ビューアの制限です)。<br>数字は下の「年度別の内訳表」でご覧になれます。<br>グラフを見るには: ファイルを長押し→「別のアプリで開く」→ <b>Chrome / Safari</b> で開いてください。</div>';
+    }
+  }
 }
 
 // ---- 行UI生成 ----
-function cell(html){ const td = document.createElement("td"); td.innerHTML = html; return td; }
-function numCtl(i, key, min, max, step, unit){
+function cell(html, label){ const td = document.createElement("td"); td.innerHTML = html; if (label) td.setAttribute("data-label", label); return td; }
+function numCtl(i, key, min, max, step, unit, label){
   const wrap = document.createElement("td");
+  if (label) wrap.setAttribute("data-label", label);
   wrap.innerHTML = '<div class="numcell">'
     + '<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+loans[i][key]+'" data-i="'+i+'" data-k="'+key+'">'
     + '<input class="num" type="number" min="'+min+'" max="'+max+'" step="'+step+'" value="'+loans[i][key]+'" data-i="'+i+'" data-k="'+key+'">'
@@ -321,16 +404,16 @@ function buildRows(){
   loans.forEach((l,i)=>{
     const tr = document.createElement("tr");
     if (l.amt <= 0) tr.className = "off";
-    tr.appendChild(cell('<span class="dot" style="background:'+COLORS[i]+'"></span>'+(i+1)));
-    const nm = cell('<input type="text" value="" data-i="'+i+'" data-k="name">');
+    tr.appendChild(cell('<span class="dot" style="background:'+COLORS[i]+'"></span>'+(i+1), "No."));
+    const nm = cell('<input type="text" value="" data-i="'+i+'" data-k="name">', "名称");
     nm.className = "nm"; nm.querySelector("input").value = l.name;
     tr.appendChild(nm);
-    tr.appendChild(numCtl(i,"start",1,17,1,"年目"));
-    tr.appendChild(numCtl(i,"amt",0,2000,10,""));
-    tr.appendChild(numCtl(i,"rate",0,5,0.1,""));
-    tr.appendChild(numCtl(i,"grace",0,5,1,""));
-    tr.appendChild(numCtl(i,"term",1,12,1,""));
-    tr.appendChild(cell('<span id="int_'+i+'">–</span>'));
+    tr.appendChild(numCtl(i,"start",1,17,1,"年目","借入年"));
+    tr.appendChild(numCtl(i,"amt",0,2000,10,"","借入額(万)"));
+    tr.appendChild(numCtl(i,"rate",0,5,0.1,"","金利(%)"));
+    tr.appendChild(numCtl(i,"grace",0,5,1,"","据置(年)"));
+    tr.appendChild(numCtl(i,"term",1,12,1,"","返済(年)"));
+    tr.appendChild(cell('<span id="int_'+i+'">–</span>', "利息"));
     tb.appendChild(tr);
   });
 }
@@ -346,11 +429,29 @@ document.getElementById("loanRows").addEventListener("input", e=>{
   tr.className = loans[i].amt <= 0 ? "off" : "";
   recalc();
 });
+function buildIncomeRow(){
+  const row = document.getElementById("incRow");
+  row.innerHTML = "";
+  for (let y = 1; y <= 21; y++){
+    const div = document.createElement("div");
+    div.className = "incitem";
+    div.innerHTML = '<div class="yl">'+y+'年目</div><input type="number" min="0" max="5000" step="10" value="'+(incomes[y-1]||0)+'" data-y="'+y+'">';
+    row.appendChild(div);
+  }
+}
+document.getElementById("incRow").addEventListener("input", e=>{
+  const y = +e.target.dataset.y;
+  if (!y) return;
+  const v = parseFloat(e.target.value);
+  if (isNaN(v)) return;
+  incomes[y-1] = v;
+  recalc();
+});
 document.getElementById("baseYear").addEventListener("input", recalc);
-document.getElementById("income").addEventListener("input", recalc);
 document.getElementById("resetBtn").addEventListener("click", ()=>{
   loans = JSON.parse(JSON.stringify(DEFAULTS));
-  buildRows(); recalc();
+  incomes = INCOME_DEFAULT.slice();
+  buildRows(); buildIncomeRow(); recalc();
 });
 document.querySelectorAll("[data-save]").forEach(btn => btn.addEventListener("click", ()=>{
   const i = +btn.dataset.save;
@@ -358,7 +459,7 @@ document.querySelectorAll("[data-save]").forEach(btn => btn.addEventListener("cl
     label: document.getElementById("label"+i).value || "保存" + "ABC"[i],
     loans: JSON.parse(JSON.stringify(loans)),
     baseYear: parseInt(document.getElementById("baseYear").value) || 2027,
-    income: parseFloat(document.getElementById("income").value) || 0
+    incomes: incomes.slice()
   };
   saveSlots(); recalc();
 }));
@@ -367,15 +468,20 @@ document.querySelectorAll("[data-load]").forEach(btn => btn.addEventListener("cl
   if (!slots[i]) { alert("このスロットはまだ空です。先に「ここに保存」を押してください。"); return; }
   loans = JSON.parse(JSON.stringify(slots[i].loans));
   document.getElementById("baseYear").value = slots[i].baseYear;
-  document.getElementById("income").value = slots[i].income;
-  buildRows(); recalc();
+  incomes = slotIncomes(slots[i]).slice();
+  buildRows(); buildIncomeRow(); recalc();
 }));
 for (let i = 0; i < 3; i++){
   document.getElementById("label"+i).addEventListener("input", e => {
     if (slots[i]) { slots[i].label = e.target.value; saveSlots(); }
   });
 }
-buildRows(); recalc();
+document.getElementById("restorePresets").addEventListener("click", ()=>{
+  if (!confirm("保存A・B・Cを入力例(新規就農/既存農家/空き)に戻します。よろしいですか?")) return;
+  slots = JSON.parse(JSON.stringify(PRESET_SLOTS));
+  saveSlots(); recalc();
+});
+buildRows(); buildIncomeRow(); recalc();
 </script>
 </body>
 </html>
