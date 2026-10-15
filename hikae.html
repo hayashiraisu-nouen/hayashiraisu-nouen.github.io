@@ -232,7 +232,8 @@ body.fixing #list { padding-bottom: 7rem; }
         </div>
         <div class="field" id="saveField"><span class="lab">写真ごと1つのファイルに保存する</span>
           <button class="btn quiet" id="saveBtn" type="button">保存する</button>
-          <p class="note">保存したファイルは、タップするとLINEのような画面でそのまま読めます。携帯を変えたときは、新しい携帯の「別のファイルを読み込む」でこのファイルを選ぶと、元どおりになります。</p>
+          <button class="btn quiet" id="saveZipBtn" type="button">LINEで送る用に保存する（zip）</button>
+          <p class="note">LINEはそのままのファイルを送れないので、LINEで送るときは「LINEで送る用」で保存してください。受け取った人は、ファイルアプリでそれをタップすると開けるようになります。保存したファイルは、タップするとLINEのような画面でそのまま読めます。携帯を変えたときは、新しい携帯の「別のファイルを読み込む」でこのファイルを選ぶと、元どおりになります。</p>
         </div>
         <div class="field"><span class="lab">ファイル</span>
           <button class="btn quiet" id="otherBtn" type="button">別のファイルを読み込む</button>
@@ -924,6 +925,22 @@ async function buildExport() {
   return { blob, posters };
 }
 window.__hikaeExport = buildExport; window.__hikaeVP = videoPoster;
+// zip にする（圧縮なし。LINEは .html を送れないため）
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+async function zipOne(name, blob) {
+  const data = new Uint8Array(await blob.arrayBuffer()); const crc = crc32(data);
+  const nm = new TextEncoder().encode(name); const d = new Date();
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const lh = new DataView(new ArrayBuffer(30));
+  [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, nm.length, 2], [28, 0, 2]].forEach(([o, v, n]) => n === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true));
+  const ch = new DataView(new ArrayBuffer(46));
+  [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, nm.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, 0, 4]].forEach(([o, v, n]) => n === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true));
+  const cdOff = 30 + nm.length + data.length, cdLen = 46 + nm.length;
+  const end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, 1, 2], [10, 1, 2], [12, cdLen, 4], [16, cdOff, 4], [20, 0, 2]].forEach(([o, v, n]) => n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+  return new Blob([lh, nm, data, ch, nm, end], { type: "application/zip" });
+}
 // 携帯の共有メニュー（「"ファイル"に保存」など）か、ふつうのダウンロードで渡す
 async function shareOrDownload(name, blob) {
   try {
@@ -935,13 +952,17 @@ async function shareOrDownload(name, blob) {
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return "saved";
   } catch (e) { return "fail"; }
 }
+let saveAsZip = false;
+$("saveZipBtn").addEventListener("click", () => { saveAsZip = true; $("saveBtn").click(); });
 $("saveBtn").addEventListener("click", async () => {
+  const asZip = saveAsZip; saveAsZip = false;
   if (!S.talk) return;
   toast("ファイルを作っています…");
   let out;
   try { out = await buildExport(); } catch (e) { return toast("ファイルを作れませんでした（" + ((e && (e.message || e.name)) || "原因不明") + "）。"); }
   const who = (S.talk.speakers.find((n) => n !== S.me) || "トーク").replace(/[\\/:*?"<>|]/g, "");
-  const name = who + "とのトーク.html"; const blob = out.blob;
+  let name = who + "とのトーク.html"; let blob = out.blob;
+  if (asZip) { try { blob = await zipOne(name, blob); name = who + "とのトーク.zip"; } catch (e) { return toast("zipを作れませんでした（" + ((e && e.message) || "原因不明") + "）。"); } }
   const pn = out.posters ? "（大きい動画 " + out.posters + " 件は、最初の場面の写真にしています）" : "";
   if (saver) {
     try { await saver.save({ filename: name, data: blob }); return toast("保存しました。" + pn); }
