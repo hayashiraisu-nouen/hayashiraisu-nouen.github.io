@@ -1,3 +1,12 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="トークのひかえ">
+</head>
+<body>
 <title>トークのひかえ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@500;700&display=swap">
 <style>
@@ -18,7 +27,7 @@
   --warn: #9a3b2e;
   --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
   --font-title: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
-  --msg: 1rem;
+  --msg: 1.0625rem;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -32,8 +41,8 @@
   --them: #202634; --me: #2a3a66; --me-ink: #eef2ff; --accent: #a3b8ee; --accent-ink: #10192e;
   --mark: #6f5d10; --day: #1a1f29; --warn: #f0a195; color-scheme: dark;
 }
-:root[data-size="l"] { --msg: 1.19rem; }
-:root[data-size="xl"] { --msg: 1.38rem; }
+:root[data-size="l"] { --msg: 1.25rem; }
+:root[data-size="xl"] { --msg: 1.45rem; }
 html { font-size: 16px; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.7; -webkit-text-size-adjust: 100%; }
 * { box-sizing: border-box; }
@@ -105,7 +114,12 @@ body.talk { background: #7494c0; }
 body.talk #list .bubble { color: #111; }
 body.talk .day { background: rgba(0,0,0,.2); color: #fff; }
 body.talk .time, body.talk .name, body.talk .sys { color: #eef3fb; }
-body.talk .bubble { background: #fff; color: #111; border: 0; border-radius: 18px; }
+body.talk .bubble { background: #fff; color: #111; border: 0; border-radius: 18px; line-height: 1.42; letter-spacing: 0; padding: 9px 13px; }
+body.talk .bubble, body.talk .time, body.talk .day, body.talk .slot { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+body.talk .day { letter-spacing: 0; font-size: .85rem; }
+body.talk .time { font-size: .68rem; }
+body.talk #list { gap: 8px; }
+body.talk .row .col { max-width: min(80%, 30rem); }
 body.talk .row.me .bubble { background: #8de055; color: #111; }
 body.talk .row.them .bubble { border-top-left-radius: 4px; border-bottom-left-radius: 18px; }
 body.talk .row.me .bubble { border-top-right-radius: 4px; border-bottom-right-radius: 18px; }
@@ -149,6 +163,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding-inli
 
 
 
+.fromrow { display: flex; gap: 8px; } .fromrow input { flex: 1; min-height: 2.8rem; font-size: 1rem; padding: 4px 10px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); } .fromrow .btn { flex: none; }
 .fixwrap { display: grid; gap: 4px; justify-items: inherit; }
 .fixrow { display: flex; gap: 6px; }
 .fixrow button { min-height: 2.3rem; padding: 2px 12px; font-size: .85rem; font-weight: 700; border: 0; border-radius: 999px; background: #fff; color: #1d2433; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
@@ -199,6 +214,10 @@ body.fixing #list { padding-bottom: 7rem; }
       <div class="panel" id="menuPanel" hidden>
         <div class="field"><span class="lab">文字の大きさ</span>
           <div class="seg" id="sizeSeg"><button type="button" data-size="m">ふつう</button><button type="button" data-size="l">大きい</button><button type="button" data-size="xl">とても大きい</button></div>
+        </div>
+        <div class="field"><span class="lab">いつからのやり取りを残すか</span>
+          <div class="fromrow"><input type="month" id="fromMonth" aria-label="この月から"><button class="btn quiet" id="fromAll" type="button">最初から全部</button></div>
+          <p class="note">月を選ぶと、その月より前のやり取りは表示も保存もしません（消えるわけではなく、「最初から全部」でいつでも戻せます）。写真・動画をまとめて入れるときも、この月からの写真だけを選んでください。</p>
         </div>
         <div class="field"><span class="lab">右側に出す人（自分）</span><div class="seg" id="meSeg"></div></div>
         <div class="field" id="bulkField" hidden><span class="lab">写真と動画をまとめて入れる</span>
@@ -509,6 +528,11 @@ function header() {
 async function show(raw, opts) {
   const talk = parseTalk(raw);
   if (!talk.msgs.length) return false;
+  talk.allFirst = talk.msgs[0].date; talk.allLast = talk.msgs[talk.msgs.length - 1].date;
+  if (S.from) {
+    const kept = talk.msgs.filter((m) => m.date.slice(0, 7) >= S.from);
+    if (kept.length) { kept.forEach((m, i) => { m.i = i; }); talk.msgs = kept; talk.speakers = [...new Set(kept.filter((m) => m.name).map((m) => m.name))]; }
+  }
   S.raw = raw; S.talk = talk; S.sample = false;
   let me = opts && opts.me; if (!talk.speakers.includes(me)) me = talk.speakers.includes(talk.headerName) ? talk.headerName : (talk.speakers[1] || talk.speakers[0] || "");
   S.me = me; S.q = ""; S.hitIdx = -1;
@@ -519,6 +543,7 @@ async function show(raw, opts) {
   $("start").hidden = true; $("reader").hidden = false; closePanels(); document.body.classList.add("talk");
   header(); render();
   $("bulkField").hidden = bulkTargets().length === 0;
+  $("fromMonth").value = S.from || ""; $("fromMonth").min = talk.allFirst.slice(0, 7); $("fromMonth").max = talk.allLast.slice(0, 7);
   $("sideAsk").hidden = !!(opts && opts.asked) || talk.speakers.length < 2;
   requestAnimationFrame(() => window.scrollTo(0, document.documentElement.scrollHeight));
   return true;
@@ -543,6 +568,7 @@ async function loadFile(file) {
       const doc = new DOMParser().parseFromString(text, "text/html");
       const j = JSON.parse(doc.getElementById("hikae-data").textContent); if (j.app !== "talk-hikae" || typeof j.raw !== "string") throw 0;
       raw = j.raw; me = j.me || ""; asked = true; await store.clear();
+      S.from = typeof j.from === "string" ? j.from : ""; await store.set("kv", "from", S.from);
       const links = {}, ids = new Map();
       for (const el of doc.querySelectorAll("[data-key][src]")) {
         const u = el.getAttribute("src"); let id = ids.get(u);
@@ -601,7 +627,7 @@ $("sideSwap").addEventListener("click", () => { const o = S.talk.speakers.find((
 $("wipeBtn").addEventListener("click", () => { $("wipeAsk").hidden = false; });
 $("wipeNo").addEventListener("click", () => { $("wipeAsk").hidden = true; });
 $("wipeYes").addEventListener("click", async () => {
-  await store.clear(); revokeAll(); S.links = {}; S.talk = null; S.raw = "";
+  await store.clear(); revokeAll(); S.links = {}; S.talk = null; S.raw = ""; S.from = "";
   $("wipeAsk").hidden = true; $("reader").hidden = true; $("start").hidden = false; document.body.classList.remove("talk"); if (S.fix) setFix(false); window.scrollTo(0, 0); toast("この携帯から消しました。");
 });
 
@@ -705,6 +731,13 @@ function setFix(on) {
   closePanels(); keepPlace(render);
 }
 $("fixBtn").addEventListener("click", () => setFix(!S.fix));
+async function setFrom(v) {
+  S.from = v || ""; await store.set("kv", "from", S.from);
+  await show(S.raw, { me: S.me, asked: true });
+  toast(S.from ? S.from.replace("-", "年").replace(/年0?/, "年") + "月からのやり取りだけにしました。" : "最初から全部のやり取りにしました。");
+}
+$("fromMonth").addEventListener("change", (e) => setFrom(e.target.value));
+$("fromAll").addEventListener("click", () => setFrom(""));
 $("fixDone").addEventListener("click", () => { setFix(false); toast("直し終わりました。"); });
 $("fixSave").addEventListener("click", () => $("saveBtn").click());
 async function fixMove(key, act) {
@@ -870,7 +903,7 @@ async function buildExport() {
   }
   const other = talk.speakers.find((n) => n !== me) || "";
   const first = talk.msgs[0], last = talk.msgs[talk.msgs.length - 1];
-  const meta = JSON.stringify({ app: "talk-hikae", v: 4, me, raw: S.raw }).replace(/</g, "\\u003c");
+  const meta = JSON.stringify({ app: "talk-hikae", v: 4, me, raw: S.raw, from: S.from || "" }).replace(/</g, "\\u003c");
   const css = "*{box-sizing:border-box}body{margin:0;background:#7494c0;font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;-webkit-text-size-adjust:100%}" +
     "header{position:sticky;top:0;z-index:2;background:#f6f7f9;border-bottom:1px solid #d6dbe4;padding:10px 16px}header h1{margin:0;font-size:1.1rem}header p{margin:2px 0 0;font-size:.8rem;color:#5a6478}" +
     "main{max-width:44rem;margin:0 auto;padding:12px 12px 40px;display:flex;flex-direction:column;gap:6px}" +
@@ -878,7 +911,7 @@ async function buildExport() {
     ".sys{align-self:center;text-align:center;font-size:.8rem;color:#eef3fb;max-width:92%}" +
     ".row{display:flex;align-items:flex-end;gap:6px}.row.me{flex-direction:row-reverse}.col{display:grid;gap:2px;min-width:0;max-width:min(78%,30rem)}.row.me .col{justify-items:end}" +
     ".name{font-size:.75rem;color:#eef3fb;padding:0 6px}.time{flex:none;font-size:.7rem;color:#eef3fb;padding-bottom:2px}" +
-    ".bubble{padding:8px 13px;border-radius:18px;background:#fff;color:#111;font-size:1rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}" +
+    ".bubble{padding:9px 13px;border-radius:18px;background:#fff;color:#111;font-size:17px;line-height:1.42;letter-spacing:0;white-space:pre-wrap;overflow-wrap:anywhere}" +
     ".row.them .bubble{border-top-left-radius:4px}.row.me .bubble{background:#8de055;border-top-right-radius:4px}" +
     ".pic{display:block;max-width:100%;max-height:20rem;border-radius:14px}.pic.st{max-height:9rem}" +
     ".vp{position:relative}.vp span{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:2.4rem;text-shadow:0 1px 6px rgba(0,0,0,.6)}" +
@@ -926,9 +959,13 @@ $("saveBtn").addEventListener("click", async () => {
 (function sample() { const t = parseTalk(SAMPLE); S.sample = true; const box = $("sampleList"); box.style.display = "flex"; box.style.flexDirection = "column"; box.style.gap = "6px"; fill(box, t, "見本 太郎", 0, t.msgs.length, "", -1); for (const el of box.querySelectorAll("[id]")) el.removeAttribute("id"); S.sample = false; })();
 (async function boot() {
   const size = await store.get("kv", "size"); setSize(size === "l" || size === "xl" ? size : "m");
+  S.from = (await store.get("kv", "from")) || "";
   const raw = await store.get("kv", "raw");
   if (typeof raw === "string" && raw) await show(raw, { me: await store.get("kv", "me"), asked: await store.get("kv", "asked") });
 })();
 window.__talk = { parseTalk };
 })();
 </script>
+
+</body>
+</html>
