@@ -1,0 +1,934 @@
+<title>トークのひかえ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@500;700&display=swap">
+<style>
+/* 1本の読みもの。上に名前と道具、下にやり取りが時間の順に流れる。手紙の束を読む静けさを、青みのある紙の色でつくる。 */
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --ink: #1d2433;
+  --ink-2: #5a6478;
+  --line: #d3d9e5;
+  --them: #ffffff;
+  --me: #dce5fa;
+  --me-ink: #16213e;
+  --accent: #34508c;
+  --accent-ink: #ffffff;
+  --mark: #ffe27a;
+  --day: #e1e6f0;
+  --warn: #9a3b2e;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+  --font-title: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --msg: 1rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --surface: #1b202b; --ink: #e9edf5; --ink-2: #9aa5ba; --line: #2e3646;
+    --them: #202634; --me: #2a3a66; --me-ink: #eef2ff; --accent: #a3b8ee; --accent-ink: #10192e;
+    --mark: #6f5d10; --day: #1a1f29; --warn: #f0a195; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --surface: #1b202b; --ink: #e9edf5; --ink-2: #9aa5ba; --line: #2e3646;
+  --them: #202634; --me: #2a3a66; --me-ink: #eef2ff; --accent: #a3b8ee; --accent-ink: #10192e;
+  --mark: #6f5d10; --day: #1a1f29; --warn: #f0a195; color-scheme: dark;
+}
+:root[data-size="l"] { --msg: 1.19rem; }
+:root[data-size="xl"] { --msg: 1.38rem; }
+html { font-size: 16px; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.7; -webkit-text-size-adjust: 100%; }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 44rem; margin-inline: auto; padding-inline: 16px; }
+
+/* はじめの画面 */
+#start { padding-block: 28px 56px; }
+#start h1 { font-family: var(--font-title); font-weight: 700; font-size: 1.9rem; line-height: 1.3; margin: 0 0 6px; letter-spacing: .04em; }
+#start .lead { margin: 0 0 22px; color: var(--ink-2); }
+.steps { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 12px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: 10px; align-items: start; }
+.steps li::before { content: counter(s); font-family: var(--font-title); font-weight: 700; font-size: 1.25rem; line-height: 1.5; color: var(--accent); text-align: center; border-bottom: 2px solid var(--accent); }
+.steps li > div { min-width: 0; }
+.steps b { font-weight: 700; }
+.pick { display: grid; gap: 10px; margin-bottom: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 3.25rem; padding: 10px 20px; border-radius: 10px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); font-weight: 700; font-size: 1.05rem; }
+.btn.main { background: var(--accent); color: var(--accent-ink); }
+.btn.quiet { border-color: var(--line); color: var(--ink); font-weight: 500; }
+.btn.danger { border-color: var(--warn); color: var(--warn); }
+.note { color: var(--ink-2); font-size: .92rem; margin: 0; }
+.err { color: var(--warn); font-weight: 700; margin: 0 0 10px; }
+.sample-head { display: flex; align-items: baseline; gap: 10px; margin: 34px 0 6px; padding-top: 18px; border-top: 1px solid var(--line); }
+.sample-head h2 { font-family: var(--font-title); font-size: 1.1rem; margin: 0; }
+.tag { font-size: .78rem; font-weight: 700; letter-spacing: .12em; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 4px; padding: 0 6px; }
+
+/* 読む画面 */
+#bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+#bar .in { display: flex; align-items: center; gap: 8px; padding-block: 8px; }
+#bar .who { flex: 1; min-width: 0; }
+#bar h1 { font-family: var(--font-title); font-weight: 700; font-size: 1.2rem; line-height: 1.35; margin: 0; overflow-wrap: anywhere; }
+#bar .sub { font-size: .8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tool { min-width: 3rem; min-height: 3rem; padding: 4px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; font-size: .9rem; }
+.tool[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.panel { border-top: 1px solid var(--line); padding-block: 12px 14px; display: grid; gap: 12px; max-height: 70vh; overflow-y: auto; }
+.field { display: grid; gap: 4px; }
+.field > label, .field > .lab { font-size: .85rem; font-weight: 700; color: var(--ink-2); }
+.field input[type="search"], .field select { width: 100%; min-height: 3rem; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font-size: 1.05rem; }
+.hits { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hits button { width: 100%; text-align: left; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 2px; }
+.hits .when { font-size: .8rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hits .what { overflow-wrap: anywhere; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button { flex: 1 1 5rem; min-height: 2.75rem; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 500; overflow-wrap: anywhere; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; margin-block: 12px 0; border: 1.5px solid var(--accent); border-radius: 10px; background: var(--surface); }
+.ask p { margin: 0; flex: 1 1 14rem; min-width: 0; font-weight: 500; }
+.ask .acts { display: flex; gap: 8px; flex: 1 1 12rem; }
+.ask .acts .btn { flex: 1; }
+.ask .btn { min-height: 2.75rem; font-size: 1rem; padding: 6px 16px; }
+
+#list { padding-block: 14px 40px; display: flex; flex-direction: column; gap: 6px; }
+.day { align-self: center; margin-block: 16px 6px; padding: 2px 16px; border-radius: 999px; background: var(--day); color: var(--ink-2); font-family: var(--font-title); font-weight: 500; font-size: .92rem; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: flex-end; gap: 6px; max-width: 100%; scroll-margin-top: 9rem; }
+.row.me { flex-direction: row-reverse; }
+.row .col { display: grid; gap: 2px; min-width: 0; max-width: min(78%, 30rem); }
+.row.me .col { justify-items: end; }
+.name { font-size: .78rem; color: var(--ink-2); padding-inline: 6px; }
+.bubble { min-width: 0; padding: 8px 13px; border-radius: 16px; background: var(--them); color: var(--ink); border: 1px solid var(--line); font-size: var(--msg); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.row.them .bubble { border-bottom-left-radius: 4px; }
+.row.me .bubble { background: var(--me); color: var(--me-ink); border-color: transparent; border-bottom-right-radius: 4px; }
+.bubble a { color: inherit; }
+.time { flex: none; font-size: .72rem; color: var(--ink-2); font-variant-numeric: tabular-nums; padding-bottom: 2px; }
+.row.hit .bubble, .row.hit .slot { box-shadow: 0 0 0 3px var(--accent); }
+/* LINEの標準の背景に近い色 */
+body.talk { background: #7494c0; }
+body.talk #list .bubble { color: #111; }
+body.talk .day { background: rgba(0,0,0,.2); color: #fff; }
+body.talk .time, body.talk .name, body.talk .sys { color: #eef3fb; }
+body.talk .bubble { background: #fff; color: #111; border: 0; border-radius: 18px; }
+body.talk .row.me .bubble { background: #8de055; color: #111; }
+body.talk .row.them .bubble { border-top-left-radius: 4px; border-bottom-left-radius: 18px; }
+body.talk .row.me .bubble { border-top-right-radius: 4px; border-bottom-right-radius: 18px; }
+body.talk .slot { background: rgba(255,255,255,.88); color: #4a5568; border-color: rgba(0,0,0,.25); }
+body.talk .slot.plain { border-color: transparent; }
+mark { background: var(--mark); color: inherit; border-radius: 3px; padding-inline: 1px; }
+.sys { align-self: center; max-width: 92%; text-align: center; font-size: .84rem; color: var(--ink-2); overflow-wrap: anywhere; scroll-margin-top: 9rem; }
+.slot { display: grid; justify-items: center; gap: 2px; min-width: 8.5rem; padding: 12px 14px; border-radius: 14px; border: 1.5px dashed var(--ink-2); background: transparent; color: var(--ink-2); font-size: .95rem; font-weight: 700; }
+.slot small { font-weight: 400; font-size: .8rem; }
+.slot.plain { border-style: solid; border-color: var(--line); }
+.pic { display: block; border: 0; padding: 0; background: none; border-radius: 12px; overflow: hidden; line-height: 0; }
+.pic img, .pic video { display: block; max-width: 100%; max-height: 18rem; border-radius: 12px; }
+.pic.st img { max-height: 9.5rem; }
+.more { align-self: center; }
+.more .btn { min-height: 2.75rem; font-size: .95rem; }
+#topS, #botS { height: 1px; }
+
+#view { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; grid-template-rows: 1fr auto; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px); gap: 12px; }
+#view .stage { min-height: 0; display: grid; place-items: center; }
+#view img, #view video { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+#view .acts { display: flex; gap: 10px; }
+#view .acts .btn { flex: 1; }
+#chooser, #crop { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+#chooser h2, #crop h2 { font-family: var(--font-title); font-size: 1.15rem; margin: 0; }
+#chooser > .note { margin: 0; }
+#chooser { grid-template-rows: auto 1fr auto; }
+#chooser .body { min-height: 0; overflow-y: auto; display: grid; gap: 14px; align-content: start; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 8px; }
+.grid button { aspect-ratio: 1; padding: 0; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.grid img, .grid video { width: 100%; height: 100%; object-fit: contain; display: block; }
+#crop .stage { min-height: 0; display: grid; place-items: center; }
+#crop canvas { max-width: 100%; max-height: 100%; touch-action: none; border-radius: 6px; background: var(--surface); }
+#crop .acts, #chooser .acts { display: flex; gap: 10px; }
+#crop .acts .btn, #chooser .acts .btn { flex: 1; min-height: 3rem; font-size: .95rem; padding: 6px 10px; }
+[hidden] { display: none !important; }
+
+
+
+
+
+
+
+
+.fixwrap { display: grid; gap: 4px; justify-items: inherit; }
+.fixrow { display: flex; gap: 6px; }
+.fixrow button { min-height: 2.3rem; padding: 2px 12px; font-size: .85rem; font-weight: 700; border: 0; border-radius: 999px; background: #fff; color: #1d2433; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.fixrow button:disabled { opacity: .35; }
+.fixrow .fixno { background: #ffe9a8; }
+#fixBar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: #1d2433; color: #fff; font-size: .85rem; line-height: 1.4; }
+#fixBar .btn { flex: none; min-height: 2.6rem; padding: 4px 12px; }
+#fixBar .btn.quiet { background: #fff; color: #1d2433; }
+body.fixing #list { padding-bottom: 7rem; }
+#toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 30; margin-inline: auto; max-width: 30rem; padding: 12px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 500; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .row.hit .bubble, .row.hit .slot { transition: box-shadow .3s; } }
+</style>
+
+<main id="start" class="wrap">
+  <h1>トークのひかえ</h1>
+  <p class="lead">LINEから書き出したやり取りを、吹き出しの形で読むためのページです。</p>
+  <ol class="steps">
+    <li><div>やり取りが<b>残っているほうの携帯</b>でLINEを開き、読みたい相手とのトークを開きます。</div></li>
+    <li><div>右上の <b>≡</b> を押し、「設定」（または「その他」）の中にある <b>「トーク履歴を送信」</b> を押します。</div></li>
+    <li><div>送り先を選びます。<b>LINEを選んで自分あてに送る</b>のが簡単です。メールでも送れます。</div></li>
+    <li><div><b>自分の携帯</b>に届いたファイルを開き、共有のボタンから<b>「ファイルに保存」</b>を選びます。</div></li>
+    <li><div>自分の携帯でこのページを開き、下の<b>「ファイルを選ぶ」</b>を押して、保存したファイルを選びます。</div></li>
+  </ol>
+  <p class="err" id="startErr" hidden></p>
+  <div class="pick">
+    <button class="btn main" id="pickBtn" type="button">ファイルを選ぶ</button>
+    <input id="fileInput" type="file" accept=".txt,.json,.html,text/plain,application/json,text/html" hidden>
+  </div>
+  <p class="note">読み込んだやり取りは、この携帯の中だけで表示します。どこにも送りません。</p>
+  <div class="sample-head"><h2>読み込むと、こう見えます</h2><span class="tag">見本</span></div>
+  <div id="sampleList" aria-label="見本のやり取り"></div>
+</main>
+
+<div id="reader" hidden>
+  <header id="bar">
+    <div class="wrap">
+      <div class="in">
+        <div class="who"><h1 id="title"></h1><div class="sub" id="sub"></div></div>
+        <button class="tool" id="findBtn" type="button" aria-expanded="false" aria-controls="findPanel">さがす</button>
+        <button class="tool" id="menuBtn" type="button" aria-expanded="false" aria-controls="menuPanel">設定</button>
+      </div>
+      <div class="panel" id="findPanel" hidden>
+        <div class="field"><label for="q">言葉でさがす</label><input id="q" type="search" autocomplete="off" placeholder="例：誕生日"></div>
+        <div class="field"><label for="month">月をえらんで移動する</label><select id="month"></select></div>
+        <p class="note" id="hitNote" hidden></p>
+        <ul class="hits" id="hits"></ul>
+      </div>
+      <div class="panel" id="menuPanel" hidden>
+        <div class="field"><span class="lab">文字の大きさ</span>
+          <div class="seg" id="sizeSeg"><button type="button" data-size="m">ふつう</button><button type="button" data-size="l">大きい</button><button type="button" data-size="xl">とても大きい</button></div>
+        </div>
+        <div class="field"><span class="lab">右側に出す人（自分）</span><div class="seg" id="meSeg"></div></div>
+        <div class="field" id="bulkField" hidden><span class="lab">写真と動画をまとめて入れる</span>
+          <button class="btn main" id="bulkBtn" type="button">写真・動画をまとめて選ぶ</button>
+          <p class="note">残っているほうの携帯のLINEで、トークの右上のメニュー →「写真・動画」→「選択」で全部選んで「保存」します。それを自分の携帯に送ってから、ここでまとめて選ぶと、古い順にそれぞれの場所へ入ります。</p>
+          <button class="btn quiet" id="fixBtn" type="button">写真・動画の位置を直す</button>
+          <p class="note">トークを見ながら、写真の下の「前へ」「後ろへ」で場所を動かせます。</p>
+        </div>
+        <div class="field"><span class="lab">スタンプを入れるには</span>
+          <p class="note">スタンプはLINEから保存できないので、残っているほうの携帯でその場面を画面写真に撮り、自分の携帯に送ります。そのあと「画像を入れる」と書かれた枠を押して選ぶと、切り取ってその場所に入れられます。同じスタンプは、一度入れれば次からは「前に入れた画像から選ぶ」で入ります。</p>
+        </div>
+        <div class="field" id="saveField"><span class="lab">写真ごと1つのファイルに保存する</span>
+          <button class="btn quiet" id="saveBtn" type="button">保存する</button>
+          <p class="note">保存したファイルは、タップするとLINEのような画面でそのまま読めます。携帯を変えたときは、新しい携帯の「別のファイルを読み込む」でこのファイルを選ぶと、元どおりになります。</p>
+        </div>
+        <div class="field"><span class="lab">ファイル</span>
+          <button class="btn quiet" id="otherBtn" type="button">別のファイルを読み込む</button>
+          <button class="btn danger" id="wipeBtn" type="button">この携帯から消す</button>
+          <div class="ask" id="wipeAsk" hidden><p>このページに読み込んだやり取りと、入れた画像を消します。もとのファイルやLINEは消えません。</p><div class="acts"><button class="btn danger" id="wipeYes" type="button">消す</button><button class="btn quiet" id="wipeNo" type="button">やめる</button></div></div>
+        </div>
+        <p class="note" id="storeNote"></p>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="ask" id="sideAsk" hidden><p>右側に出ているのは、あなたの言葉ですか。</p><div class="acts"><button class="btn main" id="sideYes" type="button">はい</button><button class="btn quiet" id="sideSwap" type="button">入れかえる</button></div></div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<div id="view" hidden>
+  <div class="stage" id="stage"></div>
+  <div class="acts"><button class="btn quiet" id="viewOff" type="button">はずす</button><button class="btn quiet" id="viewSwap" type="button">別の画像にする</button><button class="btn main" id="viewClose" type="button">とじる</button></div>
+</div>
+<div id="fixBar" hidden><span>写真の下の「前へ」「後ろへ」で場所を動かせます</span><button class="btn quiet" id="fixSave" type="button">途中を保存</button><button class="btn main" id="fixDone" type="button">直し終わり</button></div>
+<div id="chooser" hidden>
+  <h2 id="chooserTitle">画像を入れる</h2>
+  <div class="body">
+    <button class="btn main" id="chooseNew" type="button">携帯の写真や画面写真から選ぶ</button>
+    <p class="note">画面写真を選ぶと、次に切り取る画面が出ます。入れたいスタンプや写真を一回タップすると、自動で囲みます。</p>
+    <div class="field" id="reuseField" hidden><span class="lab">前に入れた画像から選ぶ</span><div class="grid" id="reuseGrid"></div></div>
+  </div>
+  <div class="acts"><button class="btn quiet" id="chooseCancel" type="button">やめる</button></div>
+</div>
+<div id="crop" hidden>
+  <h2>入れたい部分を一回タップする</h2>
+  <p class="note" id="cropNote" style="margin:0">自動で囲みます。うまく囲めないときは、指でなぞって囲んでください。</p>
+  <div class="stage"><canvas id="cropCanvas"></canvas></div>
+  <div class="acts"><button class="btn quiet" id="cropCancel" type="button">やめる</button><button class="btn quiet" id="cropWhole" type="button">そのまま入れる</button><button class="btn main" id="cropOk" type="button" disabled>囲んだ部分を入れる</button></div>
+</div>
+<input id="mediaInput" type="file" accept="image/*,video/*" hidden>
+<input id="bulkInput" type="file" accept="image/*,video/*" multiple hidden>
+<div id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const WD = ["日", "月", "火", "水", "木", "金", "土"];
+const SAMPLE = [
+  "[LINE] 見本 太郎とのトーク履歴", "保存日時：2026/04/06 21:00", "",
+  "2026/04/05(日)",
+  "9:12\t見本 花子\tおはよう。土手の桜、もう咲いとるよ",
+  "9:15\t見本 太郎\tほんま？ 昼から見に行こうか",
+  "9:16\t見本 花子\t[スタンプ]",
+  "12:40\t見本 花子\t\"お弁当つくった。\nおにぎりは梅と昆布(^_^)\"",
+  "12:41\t見本 太郎\tありがとう🍙 すぐ出る",
+  "15:02\t見本 太郎\t[写真]",
+  "15:03\t見本 花子\tええ写真じゃね",
+  "2026/04/06(月)",
+  "18:30\t☎ 通話時間 2:14",
+  "18:40\t見本 花子\t帰りに牛乳おねがい",
+].join("\n");
+
+/* ---------- 読み取り ---------- */
+const KIND = [
+  ["sticker", /^\[(スタンプ|Sticker)\]$/i], ["photo", /^\[(写真|画像|Photo)\]$/i], ["video", /^\[(動画|Video)\]$/i],
+  ["album", /^\[(アルバム|Album)\]/i], ["voice", /^\[(ボイスメッセージ|Voice message)\]$/i], ["file", /^\[(ファイル|File)\]/i],
+  ["place", /^\[(位置情報|Location)\]/i], ["contact", /^\[(連絡先|Contact)\]/i],
+];
+const KIND_LABEL = { sticker: "スタンプ", photo: "写真", video: "動画", album: "アルバム", voice: "ボイスメッセージ", file: "ファイル", place: "位置情報", contact: "連絡先" };
+const RE_DATE = /^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})(?:\s*[(（]?\s*(?:[月火水木金土日]|Mon|Tue|Wed|Thu|Fri|Sat|Sun)[^)）]*[)）]?)?\s*$/i;
+const RE_DATE_EN = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/i;
+const RE_LINE = /^(午前|午後|AM|PM)?\s?(\d{1,2}):(\d{2})\s?(AM|PM)?(\t| )(.*)$/i;
+const RE_TAB = /^(午前|午後)?\s?\d{1,2}:\d{2}\t/;
+const pad = (n) => String(n).padStart(2, "0");
+
+function quotesOpen(s) { let c = 0; for (let i = 0; i < s.length; i++) if (s[i] === '"') c++; return c % 2 === 1; }
+function unquote(s) { return (s.length >= 2 && s.includes("\n") && s[0] === '"' && s[s.length - 1] === '"') ? s.slice(1, -1).replace(/""/g, '"') : s; }
+
+function parseTalk(text) {
+  const lines = (text.charCodeAt(0) === 65279 ? text.slice(1) : text).replace(/\r\n?/g, "\n").split("\n");
+  const out = { headerName: "", msgs: [] };
+  const h = (lines[0] || "").match(/^\[LINE\]\s*(?:(.+?)とのトーク履歴|Chat history (?:with|in)\s+(.+))\s*$/);
+  if (h) out.headerName = (h[1] || h[2] || "").trim();
+  const tabbed = lines.some((l) => /^(午前|午後)?\s?\d{1,2}:\d{2}\t/.test(l));
+  const known = out.headerName ? [out.headerName] : [];
+  let date = "", cur = null, open = false;
+  const push = (m) => { out.msgs.push(m); cur = m; };
+  for (let k = 0; k < lines.length; k++) {
+    const line = lines[k];
+    if (open && cur) {
+      if (RE_DATE.test(line) || RE_DATE_EN.test(line) || RE_TAB.test(line)) open = false;
+      else { cur.text += "\n" + line; open = quotesOpen(cur.text); continue; }
+    }
+    let d = line.match(RE_DATE), y, mo, da;
+    if (d) { y = +d[1]; mo = +d[2]; da = +d[3]; }
+    else if ((d = line.match(RE_DATE_EN))) { mo = +d[1]; da = +d[2]; y = +d[3]; }
+    if (d && mo >= 1 && mo <= 12 && da >= 1 && da <= 31) { date = y + "-" + pad(mo) + "-" + pad(da); cur = null; continue; }
+    const m = date && line.match(RE_LINE);
+    if (m && (tabbed ? m[5] === "\t" : true)) {
+      let hh = +m[2]; const ap = (m[1] || m[4] || "").toUpperCase();
+      if ((ap === "午後" || ap === "PM") && hh < 12) hh += 12;
+      if ((ap === "午前" || ap === "AM") && hh === 12) hh = 0;
+      const time = hh + ":" + m[3];
+      let name = null, body = m[6];
+      if (m[5] === "\t") {
+        const t = body.indexOf("\t");
+        if (t >= 0) { name = body.slice(0, t); body = body.slice(t + 1); }
+      } else {
+        const hit = known.find((n) => body.startsWith(n + " "));
+        if (hit) { name = hit; body = body.slice(hit.length + 1); }
+        else { const s = body.indexOf(" "); if (s > 0 && !/^[☎\[]/.test(body)) { name = body.slice(0, s); body = body.slice(s + 1); if (known.length < 12 && !known.includes(name)) known.push(name); } }
+      }
+      push({ date, time, name, text: body, kind: "text" });
+      open = name !== null && body[0] === '"' && quotesOpen(body);
+      continue;
+    }
+    if (cur && date) { cur.text += "\n" + line; }
+  }
+  const counts = new Map();
+  out.msgs.forEach((m, i) => {
+    m.i = i;
+    m.text = unquote(m.text.replace(/\n+$/, ""));
+    if (m.name === null) { m.kind = /^☎/.test(m.text) ? "call" : "system"; }
+    else {
+      const t = m.text.trim();
+      if (/^☎/.test(t)) m.kind = "call";
+      else for (const [k, re] of KIND) if (re.test(t)) { m.kind = k; break; }
+    }
+    const base = m.date + " " + m.time + " " + (m.name || "") + " " + m.kind;
+    const n = (counts.get(base) || 0) + 1; counts.set(base, n);
+    m.key = base + " #" + n;
+  });
+  out.speakers = [...new Set(out.msgs.filter((m) => m.name).map((m) => m.name))];
+  return out;
+}
+function dayLabel(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return y + "年" + m + "月" + d + "日（" + WD[new Date(y, m - 1, d).getDay()] + "）";
+}
+
+/* ---------- 端末の中の保存 ---------- */
+const store = (() => {
+  let dbp = null, ok = true;
+  const mem = { kv: new Map(), media: new Map() };
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open("talk-hikae", 2);
+        r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("kv")) d.createObjectStore("kv"); if (!d.objectStoreNames.contains("media")) d.createObjectStore("media"); };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("blocked"));
+      } catch (e) { rej(e); }
+    }).catch((e) => { ok = false; return null; });
+    return dbp;
+  }
+  async function run(storeName, mode, fn) {
+    const db = await open();
+    if (!db) return fn(null);
+    return new Promise((res) => {
+      try {
+        const tx = db.transaction(storeName, mode); const rq = fn(tx.objectStore(storeName));
+        tx.oncomplete = () => res(rq ? rq.result : undefined);
+        tx.onerror = tx.onabort = () => { ok = false; res(undefined); };
+      } catch (e) { ok = false; res(undefined); }
+    });
+  }
+  return {
+    get ok() { return ok; },
+    async get(s, k) { const v = await run(s, "readonly", (o) => o ? o.get(k) : null); return v === undefined || v === null ? mem[s].get(k) : v; },
+    async set(s, k, v) { mem[s].set(k, v); await run(s, "readwrite", (o) => o ? o.put(v, k) : null); },
+    async del(s, k) { mem[s].delete(k); await run(s, "readwrite", (o) => o ? o.delete(k) : null); },
+    async keys(s) { const v = await run(s, "readonly", (o) => o ? o.getAllKeys() : null); return v && v.length ? v : [...mem[s].keys()]; },
+    async clear() { mem.kv.clear(); mem.media.clear(); await run("kv", "readwrite", (o) => o ? o.clear() : null); await run("media", "readwrite", (o) => o ? o.clear() : null); },
+  };
+})();
+
+/* ---------- 状態 ---------- */
+const S = { raw: "", talk: null, me: "", a: 0, b: 0, q: "", hitIdx: -1, urls: new Map(), links: {}, busy: false, asked: false };
+const linkUrl = (key) => S.urls.get(S.links[key]);
+async function saveLinks() { await store.set("kv", "links", Object.assign({}, S.links)); }
+function revokeAll() { for (const u of S.urls.values()) URL.revokeObjectURL(u.slice(2)); S.urls.clear(); }
+const urlOf = (blob) => (String(blob.type).startsWith("video") ? "v:" : "i:") + URL.createObjectURL(blob);
+const WIN = 400, STEP = 300, CAP = 1200;
+let toastT = 0;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+
+/* ---------- 吹き出しを作る ---------- */
+function textNodes(parent, text, q) {
+  const re = /(https?:\/\/[^\s<>"'）)]+)/g; let last = 0, m;
+  const plain = (s) => {
+    if (!q) { parent.append(s); return; }
+    const low = s.toLowerCase(), ql = q.toLowerCase(); let p = 0, at;
+    while ((at = low.indexOf(ql, p)) >= 0) { parent.append(s.slice(p, at)); const mk = document.createElement("mark"); mk.textContent = s.slice(at, at + q.length); parent.append(mk); p = at + q.length; }
+    parent.append(s.slice(p));
+  };
+  while ((m = re.exec(text))) {
+    plain(text.slice(last, m.index));
+    const a = document.createElement("a"); a.href = m[1]; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = m[1]; parent.append(a);
+    last = m.index + m[1].length;
+  }
+  plain(text.slice(last));
+}
+function mediaEl(m) {
+  const el = mediaCore(m);
+  if (!S.fix || !BULK_KINDS.includes(m.kind) || S.sample) return el;
+  const wrap = document.createElement("div"); wrap.className = "fixwrap";
+  const row = document.createElement("div"); row.className = "fixrow";
+  const filled = !!linkUrl(m.key);
+  const mk = (act, label, cls) => { const b = document.createElement("button"); b.type = "button"; b.dataset.act = act; b.dataset.key = m.key; b.textContent = label; if (cls) b.className = cls; return b; };
+  if (filled) row.append(mk("fixup", "↑ 前へ"), mk("fixdown", "↓ 後ろへ"));
+  else row.append(mk("fixpull", "↑ 後ろの写真をここへ", "fixno"));
+  wrap.append(el, row); return wrap;
+}
+function mediaCore(m) {
+  const url = linkUrl(m.key);
+  if (url) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "pic" + (m.kind === "sticker" ? " st" : ""); b.dataset.key = m.key; b.dataset.act = "view";
+    b.setAttribute("aria-label", KIND_LABEL[m.kind] + "を大きく見る");
+    const isV = url.startsWith("v:"); const el = document.createElement(isV ? "video" : "img"); el.src = url.slice(2);
+    if (isV) { el.muted = true; el.playsInline = true; el.preload = "metadata"; } else { el.alt = KIND_LABEL[m.kind]; el.loading = "lazy"; }
+    b.append(el); return b;
+  }
+  const can = m.kind === "sticker" || m.kind === "photo" || m.kind === "video" || m.kind === "album";
+  const b = document.createElement(can && !S.sample ? "button" : "div"); b.className = "slot" + (can ? "" : " plain");
+  b.append(KIND_LABEL[m.kind]);
+  if (can && !S.sample) { b.type = "button"; b.dataset.key = m.key; b.dataset.act = "add"; const s = document.createElement("small"); s.textContent = "画像を入れる"; b.append(s); }
+  return b;
+}
+function rowEl(m, talk, me, q) {
+  if (m.kind === "system" || (m.kind === "call" && m.name === null)) {
+    const d = document.createElement("div"); d.className = "sys"; d.id = "m" + m.i; d.textContent = m.time + "　" + m.text; return d;
+  }
+  const row = document.createElement("div"); row.className = "row " + (m.name === me ? "me" : "them"); row.id = "m" + m.i;
+  const col = document.createElement("div"); col.className = "col";
+  if (m.name !== me && talk.speakers.length > 2) { const n = document.createElement("div"); n.className = "name"; n.textContent = m.name; col.append(n); }
+  if (m.kind === "text" || m.kind === "call") { const b = document.createElement("div"); b.className = "bubble"; textNodes(b, m.text, q); col.append(b); }
+  else col.append(mediaEl(m));
+  const t = document.createElement("span"); t.className = "time"; t.textContent = m.time;
+  row.append(col, t); return row;
+}
+function fill(list, talk, me, a, b, q, hitIdx) {
+  const f = document.createDocumentFragment(); let day = null;
+  for (let i = a; i < b; i++) {
+    const m = talk.msgs[i];
+    if (m.date !== day) { const d = document.createElement("div"); d.className = "day"; d.textContent = dayLabel(m.date); f.append(d); day = m.date; }
+    const r = rowEl(m, talk, me, q && i === hitIdx ? q : ""); if (i === hitIdx) r.classList.add("hit"); f.append(r);
+  }
+  list.replaceChildren(f);
+}
+
+/* ---------- 読む画面 ---------- */
+function render() {
+  const n = S.talk.msgs.length, list = $("list");
+  io.disconnect();
+  fill(list, S.talk, S.me, S.a, S.b, S.q, S.hitIdx);
+  if (S.a > 0) { const w = document.createElement("div"); w.className = "more"; const b = document.createElement("button"); b.type = "button"; b.className = "btn quiet"; b.dataset.act = "up"; b.textContent = "前のやり取りを出す"; w.append(b); const s = document.createElement("div"); s.id = "topS"; list.prepend(s, w); io.observe(s); }
+  if (S.b < n) { const w = document.createElement("div"); w.className = "more"; const b = document.createElement("button"); b.type = "button"; b.className = "btn quiet"; b.dataset.act = "down"; b.textContent = "続きを出す"; w.append(b); const s = document.createElement("div"); s.id = "botS"; list.append(w, s); io.observe(s); }
+}
+function keepPlace(fn) {
+  const rows = $("list").children; let anchor = null, top = 0;
+  for (const el of rows) { if (!el.id || el.id[0] !== "m") continue; const r = el.getBoundingClientRect(); if (r.bottom > 0) { anchor = el.id; top = r.top; break; } }
+  fn();
+  if (anchor) { const el = $(anchor); if (el) window.scrollBy(0, el.getBoundingClientRect().top - top); }
+}
+function grow(dir) {
+  if (S.busy || !S.talk) return; const n = S.talk.msgs.length;
+  if (dir < 0 && S.a === 0) return; if (dir > 0 && S.b === n) return;
+  S.busy = true;
+  keepPlace(() => {
+    if (dir < 0) { S.a = Math.max(0, S.a - STEP); if (S.b - S.a > CAP) S.b = S.a + CAP; }
+    else { S.b = Math.min(n, S.b + STEP); if (S.b - S.a > CAP) S.a = S.b - CAP; }
+    render();
+  });
+  setTimeout(() => { S.busy = false; }, 120);
+}
+const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) grow(e.target.id === "topS" ? -1 : 1); }, { rootMargin: "600px 0px" });
+function jump(i, q) {
+  const n = S.talk.msgs.length; S.a = Math.max(0, i - 80); S.b = Math.min(n, S.a + WIN); S.hitIdx = q === null ? -1 : i; S.q = q || "";
+  S.busy = true; render();
+  const el = $("m" + i); if (el) el.scrollIntoView({ block: q === null ? "start" : "center" });
+  setTimeout(() => { S.busy = false; }, 300);
+}
+function header() {
+  const t = S.talk, others = t.speakers.filter((s) => s !== S.me);
+  $("title").textContent = others.length === 1 ? others[0] : (t.headerName || "トーク");
+  const f = t.msgs[0].date.split("-"), l = t.msgs[t.msgs.length - 1].date.split("-");
+  $("sub").textContent = f[0] + "年" + (+f[1]) + "月 〜 " + l[0] + "年" + (+l[1]) + "月　" + t.msgs.length.toLocaleString("ja-JP") + "件";
+  const sel = $("month"); sel.replaceChildren(); const seen = new Map();
+  t.msgs.forEach((m, i) => { const k = m.date.slice(0, 7); if (!seen.has(k)) seen.set(k, [i, 0]); seen.get(k)[1]++; });
+  const o0 = document.createElement("option"); o0.value = ""; o0.textContent = "月をえらぶ"; sel.append(o0);
+  for (const [k, [i, c]] of seen) { const o = document.createElement("option"); o.value = i; o.textContent = k.slice(0, 4) + "年" + (+k.slice(5)) + "月（" + c + "件）"; sel.append(o); }
+  const seg = $("meSeg"); seg.replaceChildren();
+  for (const s of t.speakers) { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.dataset.me = s; b.setAttribute("aria-pressed", String(s === S.me)); seg.append(b); }
+  $("storeNote").textContent = store.ok ? "読み込んだやり取りは、この携帯のこのページの中に覚えさせています。長く開かないと消えることがあるので、もとのファイルは消さずに取っておいてください。" : "この画面では、やり取りを覚えさせておけません。ページを閉じると消えるので、次に開いたときはもう一度ファイルを選んでください。";
+}
+async function show(raw, opts) {
+  const talk = parseTalk(raw);
+  if (!talk.msgs.length) return false;
+  S.raw = raw; S.talk = talk; S.sample = false;
+  let me = opts && opts.me; if (!talk.speakers.includes(me)) me = talk.speakers.includes(talk.headerName) ? talk.headerName : (talk.speakers[1] || talk.speakers[0] || "");
+  S.me = me; S.q = ""; S.hitIdx = -1;
+  revokeAll();
+  const links = await store.get("kv", "links"); S.links = (links && typeof links === "object") ? Object.assign({}, links) : {};
+  for (const id of await store.keys("media")) { const blob = await store.get("media", id); if (blob) S.urls.set(id, urlOf(blob)); }
+  const n = talk.msgs.length; S.b = n; S.a = Math.max(0, n - WIN);
+  $("start").hidden = true; $("reader").hidden = false; closePanels(); document.body.classList.add("talk");
+  header(); render();
+  $("bulkField").hidden = bulkTargets().length === 0;
+  $("sideAsk").hidden = !!(opts && opts.asked) || talk.speakers.length < 2;
+  requestAnimationFrame(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  return true;
+}
+function closePanels() { for (const [b, p] of [["findBtn", "findPanel"], ["menuBtn", "menuPanel"]]) { $(p).hidden = true; $(b).setAttribute("aria-expanded", "false"); } }
+function toggle(btn, panel) { const openNow = $(panel).hidden; closePanels(); $(panel).hidden = !openNow; $(btn).setAttribute("aria-expanded", String(openNow)); if (openNow && panel === "findPanel") $("q").focus(); }
+
+/* ---------- ファイル ---------- */
+async function readText(file) {
+  const buf = await file.arrayBuffer();
+  let t = new TextDecoder("utf-8").decode(buf);
+  if (t.split(String.fromCharCode(65533)).length > 6) { try { t = new TextDecoder("shift_jis").decode(buf); } catch (e) {} }
+  return t;
+}
+function dataUrlToBlob(u) { const [h, b] = u.split(","); const bin = atob(b); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); return new Blob([arr], { type: (h.match(/data:([^;]+)/) || [])[1] || "image/png" }); }
+async function loadFile(file) {
+  const fail = (msg) => { if ($("reader").hidden) { const e = $("startErr"); e.textContent = msg; e.hidden = false; } else toast(msg); };
+  let text; try { text = await readText(file); } catch (e) { return fail("ファイルを開けませんでした。もう一度えらんでください。"); }
+  let raw = text, me = "", asked = false, auto = null;
+  if (text.includes('id="hikae-data"')) {
+    try {
+      const doc = new DOMParser().parseFromString(text, "text/html");
+      const j = JSON.parse(doc.getElementById("hikae-data").textContent); if (j.app !== "talk-hikae" || typeof j.raw !== "string") throw 0;
+      raw = j.raw; me = j.me || ""; asked = true; await store.clear();
+      const links = {}, ids = new Map();
+      for (const el of doc.querySelectorAll("[data-key][src]")) {
+        const u = el.getAttribute("src"); let id = ids.get(u);
+        if (!id) { id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); ids.set(u, id); await store.set("media", id, dataUrlToBlob(u)); }
+        links[el.dataset.key] = id;
+      }
+      await store.set("kv", "links", links);
+    } catch (e) { return fail("このファイルは読み込めませんでした。"); }
+  } else if (text.trimStart()[0] === "{") {
+    try {
+      const j = JSON.parse(text); if (j.app !== "talk-hikae" || typeof j.raw !== "string") throw 0;
+      raw = j.raw; me = j.me || ""; asked = true; await store.clear();
+      if (Array.isArray(j.auto)) auto = j.auto;
+      const links = (j.links && typeof j.links === "object") ? j.links : {};
+      for (const it of j.media || []) { const id = it.id || it.key; await store.set("media", id, dataUrlToBlob(it.data)); if (it.key && !it.id) links[it.key] = id; }
+      await store.set("kv", "links", links);
+    } catch (e) { return fail("このファイルは読み込めませんでした。LINEの「トーク履歴を送信」で作ったファイルか、このページで保存したひかえを選んでください。"); }
+  }
+  const ok = await show(raw, { me, asked });
+  if (!ok) return fail("このファイルからやり取りを読み取れませんでした。LINEの「トーク履歴を送信」で作ったファイルか確かめてください。");
+  $("startErr").hidden = true;
+  await store.set("kv", "raw", raw); await store.set("kv", "me", S.me); await store.set("kv", "asked", asked);
+  if (auto) await autoAssign(auto);
+}
+$("pickBtn").addEventListener("click", () => $("fileInput").click());
+$("otherBtn").addEventListener("click", () => $("fileInput").click());
+$("fileInput").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) loadFile(f); });
+
+/* ---------- 操作 ---------- */
+$("findBtn").addEventListener("click", () => toggle("findBtn", "findPanel"));
+$("menuBtn").addEventListener("click", () => toggle("menuBtn", "menuPanel"));
+let qT = 0;
+$("q").addEventListener("input", () => { clearTimeout(qT); qT = setTimeout(search, 220); });
+function search() {
+  const q = $("q").value.trim(), ul = $("hits"), note = $("hitNote"); ul.replaceChildren();
+  if (!q) { note.hidden = true; return; }
+  const ql = q.toLowerCase(), found = []; let total = 0;
+  for (const m of S.talk.msgs) if (m.kind === "text" && m.text.toLowerCase().includes(ql)) { total++; found.push(m); if (found.length > 150) found.shift(); }
+  note.hidden = false; note.textContent = total ? total.toLocaleString("ja-JP") + "件ありました。" + (total > found.length ? "新しい順に" + found.length + "件を出しています。" : "") : "見つかりませんでした。";
+  for (const m of found.reverse()) {
+    const li = document.createElement("li"), b = document.createElement("button"); b.type = "button"; b.dataset.i = m.i;
+    const w = document.createElement("span"); w.className = "when"; w.textContent = dayLabel(m.date) + " " + m.time + "　" + (m.name || "");
+    const at = m.text.toLowerCase().indexOf(ql), st = Math.max(0, at - 14); const x = document.createElement("span"); x.className = "what";
+    textNodes(x, (st > 0 ? "…" : "") + m.text.slice(st, at + q.length + 30).replace(/\n/g, " ") + (m.text.length > at + q.length + 30 ? "…" : ""), q);
+    b.append(w, x); li.append(b); ul.append(li);
+  }
+}
+$("hits").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const q = $("q").value.trim(); closePanels(); jump(+b.dataset.i, q); });
+$("month").addEventListener("change", (e) => { if (e.target.value === "") return; const i = +e.target.value; e.target.value = ""; closePanels(); jump(i, null); });
+function setSize(z) { document.documentElement.dataset.size = z; for (const b of $("sizeSeg").children) b.setAttribute("aria-pressed", String(b.dataset.size === z)); }
+$("sizeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; keepPlace(() => setSize(b.dataset.size)); store.set("kv", "size", b.dataset.size); });
+function setMe(name) { S.me = name; keepPlace(() => { header(); render(); }); store.set("kv", "me", name); }
+$("meSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setMe(b.dataset.me); });
+$("sideYes").addEventListener("click", () => { $("sideAsk").hidden = true; store.set("kv", "asked", true); });
+$("sideSwap").addEventListener("click", () => { const o = S.talk.speakers.find((s) => s !== S.me); if (o) setMe(o); $("sideAsk").hidden = true; store.set("kv", "asked", true); });
+$("wipeBtn").addEventListener("click", () => { $("wipeAsk").hidden = false; });
+$("wipeNo").addEventListener("click", () => { $("wipeAsk").hidden = true; });
+$("wipeYes").addEventListener("click", async () => {
+  await store.clear(); revokeAll(); S.links = {}; S.talk = null; S.raw = "";
+  $("wipeAsk").hidden = true; $("reader").hidden = true; $("start").hidden = false; document.body.classList.remove("talk"); if (S.fix) setFix(false); window.scrollTo(0, 0); toast("この携帯から消しました。");
+});
+
+let addKey = "";
+$("list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  if (b.dataset.act === "up") grow(-1); else if (b.dataset.act === "down") grow(1);
+  else if (b.dataset.act === "add") openChooser(b.dataset.key);
+  else if (b.dataset.act === "view") openView(b.dataset.key);
+  else if (b.dataset.act === "fixup" || b.dataset.act === "fixdown" || b.dataset.act === "fixpull") fixMove(b.dataset.key, b.dataset.act);
+});
+function openChooser(key) {
+  addKey = key; const g = $("reuseGrid"); g.replaceChildren();
+  const ids = [...S.urls.keys()].reverse();
+  for (const id of ids) {
+    const u = S.urls.get(id); const b = document.createElement("button"); b.type = "button"; b.dataset.id = id; b.setAttribute("aria-label", "この画像を入れる");
+    const isV = u.startsWith("v:"); const el = document.createElement(isV ? "video" : "img"); el.src = u.slice(2); if (isV) { el.muted = true; el.playsInline = true; el.preload = "metadata"; } else el.alt = "";
+    b.append(el); g.append(b);
+  }
+  $("reuseField").hidden = ids.length === 0;
+  $("chooser").hidden = false; $("chooseNew").focus();
+}
+$("chooseCancel").addEventListener("click", () => { $("chooser").hidden = true; addKey = ""; });
+$("chooseNew").addEventListener("click", () => $("mediaInput").click());
+$("reuseGrid").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || !addKey) return;
+  S.links[addKey] = b.dataset.id; await saveLinks(); $("chooser").hidden = true; addKey = ""; keepPlace(render); toast("入れました。");
+});
+async function putAsset(blob) {
+  const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  await store.set("media", id, blob); S.urls.set(id, urlOf(blob));
+  S.links[addKey] = id; await saveLinks(); $("chooser").hidden = true; addKey = ""; keepPlace(render); toast("入れました。");
+}
+$("mediaInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f || !addKey) return;
+  if (String(f.type).startsWith("video")) return putAsset(f.slice(0, f.size, f.type));
+  openCrop(f);
+});
+
+/* ---------- 自動で切り取ったものを当てはめる ---------- */
+async function autoAssign(items) {
+  const idx = new Map();
+  for (const x of S.talk.msgs) {
+    if (!x.name || !["sticker", "photo", "video", "album"].includes(x.kind)) continue;
+    const k = x.date + "|" + x.time + "|" + (x.name === S.me ? "me" : "them");
+    if (!idx.has(k)) idx.set(k, []); idx.get(k).push(x);
+  }
+  let ok = 0, miss = 0;
+  for (const it of items) {
+    let blob; try { blob = dataUrlToBlob(it.data); } catch (e) { continue; }
+    const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    await store.set("media", id, blob); S.urls.set(id, urlOf(blob));
+    const arr = idx.get(it.date + "|" + it.time + "|" + it.side) || [];
+    let t = arr.find((x) => !S.links[x.key] && x.kind === it.kind) || arr.find((x) => !S.links[x.key]);
+    if (t) { S.links[t.key] = id; ok++; } else miss++;
+  }
+  await saveLinks(); keepPlace(render);
+  toast(ok + "件を入れました。" + (miss ? miss + "件は場所が分からなかったので「前に入れた画像から選ぶ」に入れてあります。" : ""));
+}
+
+/* ---------- 写真・動画をまとめて入れる（LINEの「写真・動画」から保存したものを、古い順に当てはめる） ---------- */
+const BULK_KINDS = ["photo", "video", "album"];
+const bulk = { targets: [], order: [], added: [] };
+function bulkTargets() { return S.talk ? S.talk.msgs.filter((x) => x.name && BULK_KINDS.includes(x.kind)) : []; }
+async function shrinkImage(file) {
+  // 携帯の写真はそのままだと大きすぎるので、長い辺を1600までに縮めて入れる
+  try {
+    const bmp = await createImageBitmap(file);
+    const s = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    if (s === 1 && file.size < 900000) { bmp.close(); return file.slice(0, file.size, file.type); }
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height); bmp.close();
+    return await new Promise((res) => c.toBlob((b) => res(b || file), "image/jpeg", 0.86));
+  } catch (e) { return file.slice(0, file.size, file.type); }
+}
+$("bulkBtn").addEventListener("click", () => $("bulkInput").click());
+$("bulkInput").addEventListener("change", async (e) => {
+  const files = [...e.target.files]; e.target.value = ""; if (!files.length || !S.talk) return;
+  closePanels();
+  files.sort((a, b) => (a.lastModified - b.lastModified) || a.name.localeCompare(b.name, "ja", { numeric: true }));
+  toast(files.length + "件を読み込んでいます…");
+  bulk.targets = bulkTargets(); bulk.added = [];
+  for (const f of files) {
+    const isV = String(f.type).startsWith("video");
+    const blob = isV ? f.slice(0, f.size, f.type) : await shrinkImage(f);
+    const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    await store.set("media", id, blob); S.urls.set(id, urlOf(blob)); bulk.added.push(id);
+  }
+  // 古い順にそのまま当てはめる（すでに入っている所も、選んだ分で置きかえる）
+  bulk.targets.forEach((t, i) => { if (i < bulk.added.length) S.links[t.key] = bulk.added[i]; });
+  await saveLinks();
+  const n = bulk.targets.length, m = bulk.added.length;
+  setFix(true);
+  const first = bulk.targets[0]; if (first) jump(first.i, null);
+  toast(Math.min(n, m) + "件を入れました。" + (m < n ? "枠のほうが " + (n - m) + " 件多いので、途中からずれているかもしれません。" : m > n ? (m - n) + "件は入れずに残しています。" : "") + "写真の下の矢印で場所を直せます。");
+});
+
+/* ---------- 位置を直す（トークを見ながら、前へ・後ろへ） ---------- */
+function setFix(on) {
+  S.fix = !!on; document.body.classList.toggle("fixing", S.fix); $("fixBar").hidden = !S.fix; $("fixBtn").textContent = S.fix ? "直すのをやめる" : "写真・動画の位置を直す";
+  closePanels(); keepPlace(render);
+}
+$("fixBtn").addEventListener("click", () => setFix(!S.fix));
+$("fixDone").addEventListener("click", () => { setFix(false); toast("直し終わりました。"); });
+$("fixSave").addEventListener("click", () => $("saveBtn").click());
+async function fixMove(key, act) {
+  const targets = bulkTargets(); const i = targets.findIndex((t) => t.key === key); if (i < 0) return;
+  const A = targets.map((t) => S.links[t.key] || null);
+  if (act === "fixdown") { A.splice(i, 0, null); }
+  else if (act === "fixpull") { A.splice(i, 1); A.push(null); }
+  else if (act === "fixup") {
+    if (i === 0) return;
+    if (A[i - 1] === null) { A.splice(i - 1, 1); A.push(null); }
+    else { const t = A[i - 1]; A[i - 1] = A[i]; A[i] = t; }
+  }
+  const spare = A.length > targets.length ? A.splice(targets.length) : [];
+  targets.forEach((t, k) => { if (A[k]) S.links[t.key] = A[k]; else delete S.links[t.key]; });
+  await saveLinks(); keepPlace(render);
+  if (spare.some(Boolean)) toast("いちばん後ろの写真は枠からはみ出したので、「前に入れた画像から選ぶ」に残しています。");
+}
+
+/* ---------- 切り取り ---------- */
+const crop = { img: null, scale: 1, rect: null, down: false, x0: 0, y0: 0 };
+function openCrop(file) {
+  const url = URL.createObjectURL(file); const img = new Image();
+  img.onload = () => {
+    crop.img = img; crop.rect = null; $("cropOk").disabled = true;
+    const c = $("cropCanvas"); const maxW = Math.min(window.innerWidth - 32, 700), maxH = Math.max(240, window.innerHeight * 0.62);
+    crop.scale = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+    c.width = Math.round(img.naturalWidth * crop.scale); c.height = Math.round(img.naturalHeight * crop.scale);
+    drawCrop(); $("chooser").hidden = true; $("crop").hidden = false; URL.revokeObjectURL(url);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast("この画像は開けませんでした。"); };
+  img.src = url;
+}
+function drawCrop() {
+  const c = $("cropCanvas"), g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height); g.drawImage(crop.img, 0, 0, c.width, c.height);
+  if (crop.rect) {
+    const r = crop.rect; g.fillStyle = "rgba(0,0,0,.45)";
+    g.fillRect(0, 0, c.width, r.y); g.fillRect(0, r.y + r.h, c.width, c.height - r.y - r.h); g.fillRect(0, r.y, r.x, r.h); g.fillRect(r.x + r.w, r.y, c.width - r.x - r.w, r.h);
+    g.strokeStyle = "#ffffff"; g.lineWidth = 2; g.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+  }
+}
+function cpos(e) { const c = $("cropCanvas"), b = c.getBoundingClientRect(); return { x: Math.min(Math.max(0, (e.clientX - b.left) * c.width / b.width), c.width), y: Math.min(Math.max(0, (e.clientY - b.top) * c.height / b.height), c.height) }; }
+$("cropCanvas").addEventListener("pointerdown", (e) => { const p = cpos(e); crop.down = true; crop.x0 = p.x; crop.y0 = p.y; crop.rect = null; e.target.setPointerCapture(e.pointerId); drawCrop(); });
+$("cropCanvas").addEventListener("pointermove", (e) => { if (!crop.down) return; const p = cpos(e); crop.rect = { x: Math.min(p.x, crop.x0), y: Math.min(p.y, crop.y0), w: Math.abs(p.x - crop.x0), h: Math.abs(p.y - crop.y0) }; drawCrop(); });
+const cropEnd = (e) => {
+  if (!crop.down) return; crop.down = false;
+  if (crop.rect && crop.rect.w > 8 && crop.rect.h > 8) { $("cropOk").disabled = false; return; }
+  const p = cpos(e); crop.rect = autoRect(p.x, p.y);
+  $("cropOk").disabled = !crop.rect; drawCrop();
+  if (!crop.rect) toast("自動では囲めませんでした。指でなぞって囲んでください。");
+};
+function autoRect(px, py) {
+  const c = $("cropCanvas"), w = c.width, h = c.height; let data;
+  try { data = c.getContext("2d").getImageData(0, 0, w, h).data; } catch (err) { return null; }
+  const f = Math.max(1, Math.ceil(Math.max(w, h) / 320)), W = Math.ceil(w / f), H = Math.ceil(h / f);
+  const R = new Uint8Array(W * H), G = new Uint8Array(W * H), B = new Uint8Array(W * H), hist = new Map();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = ((Math.min(h - 1, y * f) * w) + Math.min(w - 1, x * f)) * 4, k = y * W + x;
+    R[k] = data[i]; G[k] = data[i + 1]; B[k] = data[i + 2];
+    const q = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4); hist.set(q, (hist.get(q) || 0) + 1);
+  }
+  let bq = 0, bn = -1; for (const [q, n] of hist) if (n > bn) { bn = n; bq = q; }
+  const br = ((bq >> 8) & 15) * 16 + 8, bg = ((bq >> 4) & 15) * 16 + 8, bb = (bq & 15) * 16 + 8;
+  const mask = new Uint8Array(W * H);
+  for (let k = 0; k < W * H; k++) mask[k] = (Math.abs(R[k] - br) + Math.abs(G[k] - bg) + Math.abs(B[k] - bb)) > 72 ? 1 : 0;
+  const rad = 1, dil = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (!mask[y * W + x]) continue; for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < H && xx >= 0 && xx < W) dil[yy * W + xx] = 1; } }
+  let sx = Math.min(W - 1, Math.floor(px / f)), sy = Math.min(H - 1, Math.floor(py / f));
+  if (!dil[sy * W + sx]) { let best = null, bd = 1e9; for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) { const yy = sy + dy, xx = sx + dx; if (yy >= 0 && yy < H && xx >= 0 && xx < W && dil[yy * W + xx]) { const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = [xx, yy]; } } } if (!best) return null; sx = best[0]; sy = best[1]; }
+  const seen = new Uint8Array(W * H), stack = [sy * W + sx]; seen[sy * W + sx] = 1; let x0 = W, y0 = H, x1 = -1, y1 = -1, cnt = 0;
+  while (stack.length) { const k = stack.pop(); const x = k % W, y = (k - x) / W; cnt++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue; const kk = yy * W + xx; if (!seen[kk] && dil[kk]) { seen[kk] = 1; stack.push(kk); } } }
+  const bw = (x1 - x0 + 1) * f, bh = (y1 - y0 + 1) * f;
+  if (bw * bh > w * h * 0.6 || bw < 12 || bh < 12) return null;
+  const pad = 3 * f;
+  const rx = Math.max(0, x0 * f - pad), ry = Math.max(0, y0 * f - pad);
+  return { x: rx, y: ry, w: Math.min(w - rx, bw + pad * 2), h: Math.min(h - ry, bh + pad * 2) };
+}
+$("cropCanvas").addEventListener("pointerup", cropEnd); $("cropCanvas").addEventListener("pointercancel", cropEnd);
+function closeCrop() { $("crop").hidden = true; crop.img = null; crop.rect = null; }
+$("cropCancel").addEventListener("click", () => { closeCrop(); addKey = ""; });
+async function finishCrop(r) {
+  const img = crop.img; const sx = r ? r.x / crop.scale : 0, sy = r ? r.y / crop.scale : 0, sw = r ? r.w / crop.scale : img.naturalWidth, sh = r ? r.h / crop.scale : img.naturalHeight;
+  const o = document.createElement("canvas"); const lim = 1600, k = Math.min(1, lim / Math.max(sw, sh)); o.width = Math.max(1, Math.round(sw * k)); o.height = Math.max(1, Math.round(sh * k));
+  o.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, o.width, o.height);
+  const blob = await new Promise((res) => o.toBlob(res, "image/png"));
+  closeCrop(); if (blob) await putAsset(blob); else toast("画像を作れませんでした。");
+}
+$("cropOk").addEventListener("click", () => { if (crop.rect) finishCrop(crop.rect); });
+$("cropWhole").addEventListener("click", () => finishCrop(null));
+
+let viewKey = "";
+function openView(key) {
+  const url = linkUrl(key); if (!url) return; viewKey = key; const st = $("stage"); st.replaceChildren();
+  const isV = url.startsWith("v:"); const el = document.createElement(isV ? "video" : "img"); el.src = url.slice(2); if (isV) { el.controls = true; el.playsInline = true; } else el.alt = "";
+  st.append(el); $("view").hidden = false; $("viewClose").focus();
+}
+$("viewClose").addEventListener("click", () => { $("view").hidden = true; $("stage").replaceChildren(); });
+$("viewSwap").addEventListener("click", () => { const k = viewKey; $("view").hidden = true; $("stage").replaceChildren(); openChooser(k); });
+$("viewOff").addEventListener("click", async () => {
+  const id = S.links[viewKey]; delete S.links[viewKey]; await saveLinks();
+  if (id && !Object.values(S.links).includes(id)) { const u = S.urls.get(id); if (u) URL.revokeObjectURL(u.slice(2)); S.urls.delete(id); await store.del("media", id); }
+  $("view").hidden = true; $("stage").replaceChildren(); keepPlace(render); toast("はずしました。");
+});
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; if (!$("view").hidden) $("viewClose").click(); else if (!$("crop").hidden) $("cropCancel").click(); else if (!$("chooser").hidden) $("chooseCancel").click(); else closePanels(); });
+
+/* ---------- ひかえの保存（使える画面だけ） ---------- */
+let saver = null;
+if (window.claude && typeof window.claude.use === "function") {
+  window.claude.use("downloads").then((d) => { saver = d; }).catch(() => {});
+}
+const toDataUrl = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+/* ---------- 1つのファイルに保存（タップすればLINEのような画面で読める。このページに読み込み直すこともできる） ---------- */
+const escH = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// 動画の最初の場面を画像にする（大きすぎる動画はファイルに入れず、この画像で代わりにする）
+function videoPoster(blob) {
+  return new Promise((res) => {
+    const v = document.createElement("video"); const u = URL.createObjectURL(blob); let done = false;
+    const fin = (r) => { if (done) return; done = true; URL.revokeObjectURL(u); v.removeAttribute("src"); v.load(); res(r); };
+    setTimeout(() => fin(null), 8000);
+    v.muted = true; v.playsInline = true; v.preload = "auto";
+    v.addEventListener("loadeddata", () => { try { v.currentTime = Math.min(0.5, (v.duration || 1) / 2); } catch (e) { fin(null); } });
+    v.addEventListener("seeked", () => {
+      try {
+        const s = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight || 1));
+        const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(v.videoWidth * s)); c.height = Math.max(1, Math.round(v.videoHeight * s));
+        c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob((b) => fin(b), "image/jpeg", 0.8);
+      } catch (e) { fin(null); }
+    });
+    v.addEventListener("error", () => fin(null));
+    v.src = u;
+  });
+}
+const VIDEO_ONE_MAX = 15 * 1024 * 1024, VIDEO_ALL_MAX = 80 * 1024 * 1024;
+async function buildExport() {
+  const talk = S.talk, me = S.me, cache = new Map(); const parts = []; let day = ""; let vTotal = 0; let posters = 0;
+  for (const m of talk.msgs) {
+    if (m.date !== day) { day = m.date; parts.push('<div class="day">' + escH(dayLabel(m.date)) + "</div>"); }
+    if (m.kind === "system" || (m.kind === "call" && m.name === null)) { parts.push('<div class="sys">' + escH(m.time + "　" + m.text) + "</div>"); continue; }
+    const side = m.name === me ? "me" : "them"; let inner = "";
+    if (side === "them" && talk.speakers.length > 2) inner += '<div class="name">' + escH(m.name) + "</div>";
+    if (m.kind === "text" || m.kind === "call") inner += '<div class="bubble">' + escH(m.text) + "</div>";
+    else {
+      const id = S.links[m.key]; let data = id && cache.get(id);
+      if (id && !data) {
+        const b = await store.get("media", id);
+        if (b) {
+          if (String(b.type).startsWith("video")) {
+            if (b.size <= VIDEO_ONE_MAX && vTotal + b.size <= VIDEO_ALL_MAX) { vTotal += b.size; data = { u: new Blob([await toDataUrl(b)]), t: "v" }; }
+            else { const pb = await videoPoster(b); if (pb) { data = { u: new Blob([await toDataUrl(pb)]), t: "p" }; posters++; } }
+          } else data = { u: new Blob([await toDataUrl(b)]), t: "i" };
+          if (data) cache.set(id, data);
+        }
+      }
+      const head = '<div class="row ' + side + '"><div class="col">' + inner;
+      const tail = '</div><span class="time">' + escH(m.time) + "</span></div>";
+      if (data && data.t === "v") { parts.push(head + '<video class="pic" controls playsinline preload="metadata" data-key="' + escH(m.key) + '" src="', data.u, '"></video>' + tail); continue; }
+      if (data && data.t === "p") { parts.push(head + '<div class="vp"><img class="pic" alt="" loading="lazy" data-key="' + escH(m.key) + '" src="', data.u, '"><span>▶</span></div>' + tail); continue; }
+      if (data) { parts.push(head + '<img class="pic' + (m.kind === "sticker" ? " st" : "") + '" alt="" loading="lazy" data-key="' + escH(m.key) + '" src="', data.u, '">' + tail); continue; }
+      inner += '<div class="slot">' + escH(KIND_LABEL[m.kind] || "") + "</div>";
+    }
+    parts.push('<div class="row ' + side + '"><div class="col">' + inner + '</div><span class="time">' + escH(m.time) + "</span></div>");
+  }
+  const other = talk.speakers.find((n) => n !== me) || "";
+  const first = talk.msgs[0], last = talk.msgs[talk.msgs.length - 1];
+  const meta = JSON.stringify({ app: "talk-hikae", v: 4, me, raw: S.raw }).replace(/</g, "\\u003c");
+  const css = "*{box-sizing:border-box}body{margin:0;background:#7494c0;font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;-webkit-text-size-adjust:100%}" +
+    "header{position:sticky;top:0;z-index:2;background:#f6f7f9;border-bottom:1px solid #d6dbe4;padding:10px 16px}header h1{margin:0;font-size:1.1rem}header p{margin:2px 0 0;font-size:.8rem;color:#5a6478}" +
+    "main{max-width:44rem;margin:0 auto;padding:12px 12px 40px;display:flex;flex-direction:column;gap:6px}" +
+    ".day{align-self:center;margin:16px 0 6px;padding:2px 14px;border-radius:999px;background:rgba(0,0,0,.2);color:#fff;font-size:.85rem}" +
+    ".sys{align-self:center;text-align:center;font-size:.8rem;color:#eef3fb;max-width:92%}" +
+    ".row{display:flex;align-items:flex-end;gap:6px}.row.me{flex-direction:row-reverse}.col{display:grid;gap:2px;min-width:0;max-width:min(78%,30rem)}.row.me .col{justify-items:end}" +
+    ".name{font-size:.75rem;color:#eef3fb;padding:0 6px}.time{flex:none;font-size:.7rem;color:#eef3fb;padding-bottom:2px}" +
+    ".bubble{padding:8px 13px;border-radius:18px;background:#fff;color:#111;font-size:1rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}" +
+    ".row.them .bubble{border-top-left-radius:4px}.row.me .bubble{background:#8de055;border-top-right-radius:4px}" +
+    ".pic{display:block;max-width:100%;max-height:20rem;border-radius:14px}.pic.st{max-height:9rem}" +
+    ".vp{position:relative}.vp span{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:2.4rem;text-shadow:0 1px 6px rgba(0,0,0,.6)}" +
+    ".slot{padding:10px 16px;border-radius:14px;background:rgba(255,255,255,.85);color:#4a5568;font-size:.9rem;border:1.5px dashed rgba(0,0,0,.25)}";
+  const top = '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escH(other) + "とのトーク</title><style>" + css + "</style>" +
+    '<script type="application/json" id="hikae-data">' + meta + "</" + "script></head><body><header><h1>" + escH(other) + "</h1><p>" +
+    escH(dayLabel(first.date) + " 〜 " + dayLabel(last.date) + "　" + talk.msgs.length + "件") + "</p></header><main>";
+  const blob = new Blob([top].concat(parts.flatMap((x) => [x, "\n"]), ["</main></body></html>"]), { type: "text/html" });
+  return { blob, posters };
+}
+window.__hikaeExport = buildExport; window.__hikaeVP = videoPoster;
+// 携帯の共有メニュー（「"ファイル"に保存」など）か、ふつうのダウンロードで渡す
+async function shareOrDownload(name, blob) {
+  try {
+    const f = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return "saved"; }
+  } catch (e) { if (e && e.name === "AbortError") return "declined"; }
+  try {
+    const u = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = u; a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return "saved";
+  } catch (e) { return "fail"; }
+}
+$("saveBtn").addEventListener("click", async () => {
+  if (!S.talk) return;
+  toast("ファイルを作っています…");
+  let out;
+  try { out = await buildExport(); } catch (e) { return toast("ファイルを作れませんでした（" + ((e && (e.message || e.name)) || "原因不明") + "）。"); }
+  const who = (S.talk.speakers.find((n) => n !== S.me) || "トーク").replace(/[\\/:*?"<>|]/g, "");
+  const name = who + "とのトーク.html"; const blob = out.blob;
+  const pn = out.posters ? "（大きい動画 " + out.posters + " 件は、最初の場面の写真にしています）" : "";
+  if (saver) {
+    try { await saver.save({ filename: name, data: blob }); return toast("保存しました。" + pn); }
+    catch (err) {
+      const c = err && err.code;
+      if (c === "declined") return toast("保存をやめました。");
+      if (c === "rate_limited") return toast("少し待ってから、もう一度押してください。");
+    }
+  }
+  const r = await shareOrDownload(name, blob);
+  toast(r === "saved" ? "保存の画面を出しました。「\"ファイル\"に保存」を選んでください。" + pn : r === "declined" ? "保存をやめました。" : "この画面では保存できませんでした。Safariで開いてためしてください。");
+});
+
+
+/* ---------- はじまり ---------- */
+(function sample() { const t = parseTalk(SAMPLE); S.sample = true; const box = $("sampleList"); box.style.display = "flex"; box.style.flexDirection = "column"; box.style.gap = "6px"; fill(box, t, "見本 太郎", 0, t.msgs.length, "", -1); for (const el of box.querySelectorAll("[id]")) el.removeAttribute("id"); S.sample = false; })();
+(async function boot() {
+  const size = await store.get("kv", "size"); setSize(size === "l" || size === "xl" ? size : "m");
+  const raw = await store.get("kv", "raw");
+  if (typeof raw === "string" && raw) await show(raw, { me: await store.get("kv", "me"), asked: await store.get("kv", "asked") });
+})();
+window.__talk = { parseTalk };
+})();
+</script>
