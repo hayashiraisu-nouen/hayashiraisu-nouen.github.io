@@ -216,8 +216,9 @@ body.fixing #list { padding-bottom: 7rem; }
           <div class="seg" id="sizeSeg"><button type="button" data-size="m">ふつう</button><button type="button" data-size="l">大きい</button><button type="button" data-size="xl">とても大きい</button></div>
         </div>
         <div class="field"><span class="lab">いつからのやり取りを残すか</span>
-          <div class="fromrow"><input type="month" id="fromMonth" aria-label="この月から"><button class="btn quiet" id="fromAll" type="button">最初から全部</button></div>
-          <p class="note">月を選ぶと、その月より前のやり取りは表示も保存もしません（消えるわけではなく、「最初から全部」でいつでも戻せます）。写真・動画をまとめて入れるときも、この月からの写真だけを選んでください。</p>
+          <div class="fromrow"><input type="month" id="fromMonth" aria-label="この月から"><button class="btn main" id="fromApply" type="button">決定</button></div>
+          <button class="btn quiet" id="fromAll" type="button">最初から全部にもどす</button>
+          <p class="note">月を選んで「決定」を押すと、その月より前のやり取りは表示も保存もしません（消えるわけではなく、「最初から全部」でいつでも戻せます）。写真・動画をまとめて入れるときも、この月からの写真だけを選んでください。</p>
         </div>
         <div class="field"><span class="lab">右側に出す人（自分）</span><div class="seg" id="meSeg"></div></div>
         <div class="field" id="bulkField" hidden><span class="lab">写真と動画をまとめて入れる</span>
@@ -736,7 +737,7 @@ async function setFrom(v) {
   await show(S.raw, { me: S.me, asked: true });
   toast(S.from ? S.from.replace("-", "年").replace(/年0?/, "年") + "月からのやり取りだけにしました。" : "最初から全部のやり取りにしました。");
 }
-$("fromMonth").addEventListener("change", (e) => setFrom(e.target.value));
+$("fromApply").addEventListener("click", () => { const v = $("fromMonth").value; if (!v) return toast("先に月を選んでください。"); setFrom(v); });
 $("fromAll").addEventListener("click", () => setFrom(""));
 $("fixDone").addEventListener("click", () => { setFix(false); toast("直し終わりました。"); });
 $("fixSave").addEventListener("click", () => $("saveBtn").click());
